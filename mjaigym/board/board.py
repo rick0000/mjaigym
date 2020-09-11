@@ -768,7 +768,7 @@ class Board(object):
         #         MjMove.dora.value,
         #         MjMove.reach_accepted.value,
         #     ]
-        last_actor = self.previous_action['actor'] if 'actor' in self.previous_action else 0
+        last_actor = self.previous_action['actor'] if 'actor' in self.previous_action else self.chicha - 1
         
         tsumo_actor = ((last_actor + 1) % self.PLAYER_NUM)
         # assert type(tsumo_actor) == int
