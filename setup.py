@@ -11,7 +11,7 @@ setup(
         "tqdm",
         "dataclass",
         "tensorboard",
-        "pytorch",
+        "torch",
     ],
     include_package_data=True,
     package_data={
