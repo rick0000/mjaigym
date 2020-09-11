@@ -267,12 +267,12 @@ class TensorBoardLogger():
         if not log_dir:
             self.log_dir = os.path.join(os.path.dirname(__file__), "logs")
         if not os.path.exists(self.log_dir):
-            os.mkdir(self.log_dir)
+            os.makedirs(self.log_dir, exist_ok=True)
         
         if session_name:
             self.log_dir = os.path.join(self.log_dir, session_name)
             if not os.path.exists(self.log_dir):
-                os.mkdir(self.log_dir)
+                os.makedirs(self.log_dir, exist_ok=True)
         
 
     def write(self, tag, value, i):
