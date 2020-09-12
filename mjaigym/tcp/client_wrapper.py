@@ -140,6 +140,11 @@ class ClientWrapper:
         except Exception:
             pass
 
+
+
+
+
+
 if __name__ == "__main__":
     lock = threading.Lock()
     def sync_recieve_handler(mes, name):

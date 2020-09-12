@@ -25,6 +25,7 @@ from mjaigym.board.mj_move import MjMove
 import mjaigym.loggers as lgs
 from ml.framework import Experience
 from ml.model import Model, Head2Model, Head34Model
+from mjaigym.client import MaxUkeireClient
 
 
 class MjAgent():
@@ -65,7 +66,7 @@ class MjAgent():
             while not done:
                 if render:
                     env.render()
-                actions = self.think_all_player(state, info["possible_actions"])
+                actions = self.think_all_player(state, info["possible_actions"],  info['board_state'])
                 n_state, reward, done, info = env.step(actions)
                 state = n_state
         return env
@@ -89,11 +90,11 @@ class MjAgent():
         while not done:
             if render:
                 env.render()
-            actions = self.think_all_player(state, info["possible_actions"])
+            actions = self.think_all_player(state, info["possible_actions"], info['board_state'])
             n_state, reward, done, info = env.step(actions)
             state = n_state
 
-    def think_one_player(self, player_observation, player_possible_actions, player_id):
+    def think_one_player(self, player_observation, player_possible_actions, player_id, board_state):
         if len(player_possible_actions) == 1:
             return player_possible_actions[0]
         
@@ -162,12 +163,12 @@ class MjAgent():
         assert Exception("not intended path")
 
 
-    def think_all_player(self, state, possible_actions):
+    def think_all_player(self, state, possible_actions, board_state):
         result = {}
         for player_id in range(4):
             player_possible_actions = possible_actions[player_id]
             player_observation = state[player_id]
-            result[player_id] = self.think_one_player(player_observation, player_possible_actions, player_id)
+            result[player_id] = self.think_one_player(player_observation, player_possible_actions, player_id, board_state)
         
         return result
     
@@ -380,15 +381,29 @@ class FixPolicyAgent(InnerAgent):
     """
     def __init__(self, fix_policy_probs):
         self.fix_policy_probs = fix_policy_probs
-
     def policy(self, observation):
         return self.fix_policy_probs
-    
     def update(self, experiences):
         pass
     def evaluate(self, experiences):
         pass
-
     def save(self, save_path):
         pass
 
+
+
+
+
+class MaxUkeireMjAgent(MjAgent):
+    """ 外側のエージェント
+    内部モデルは持たずルールベースで判断する。
+    打牌は受け入れ最大、副露は確率でルールベースで行う。
+    """
+    def __init__(self, id, name):
+        self.client = MaxUkeireClient(id=id, name=name)
+
+    def think_one_player(self, player_observation, player_possible_actions, player_id, board_state):
+        return self.client.think(board_state)
+
+    def update(self):
+        pass

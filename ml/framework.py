@@ -4,6 +4,9 @@ from abc import ABCMeta, abstractmethod
 import typing
 import copy
 import random
+import datetime
+import uuid
+import json
 
 from torch.utils.tensorboard import SummaryWriter
 from dataclasses import dataclass
@@ -258,6 +261,15 @@ class MjObserver(metaclass=ABCMeta):
 
         return result
 
+    def dump(self, dir_path):    
+        os.makedirs(dir_path, exist_ok=True)
+        fname = datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + "_" + str(uuid.uuid4()) + '.mjson'
+        fpath = os.path.join(dir_path, fname)
+        history = self._board.dealer_history
+        with open(fpath,'wt') as f:
+            formatted_lines = [json.dumps(l)+os.linesep for l in self._board.dealer_history]
+            f.writelines(formatted_lines)
+        return fname
 
 class TensorBoardLogger():
     """Tensorboardに実行結果を書き込む

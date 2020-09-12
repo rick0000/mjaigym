@@ -5,6 +5,9 @@ import typing
 import copy
 import random
 import multiprocessing
+import json
+import datetime
+import uuid
 
 import torch
 if torch.cuda.is_available():
@@ -66,8 +69,9 @@ class Evaluator():
             actions = {}
             for player_id in range(4):
                 player_possible_actions = info["possible_actions"][player_id]
+                board_state = info["board_state"]
                 player_observation = state[player_id]
-                actions[player_id] = agents[player_id].think_one_player(player_observation, player_possible_actions, player_id)
+                actions[player_id] = agents[player_id].think_one_player(player_observation, player_possible_actions, player_id, board_state)
 
             n_state, reward, done, info = env.step(actions)
             state = n_state
@@ -76,7 +80,8 @@ class Evaluator():
 
 
 
-if __name__ == "__main__":
+
+def self_play_nn_agent():
     from mjaigym.reward.kyoku_score_reward import KyokuScoreReward
     from ml.custom_observer import SampleCustomObserver
     from mjaigym.config import ModelConfig
@@ -98,11 +103,43 @@ if __name__ == "__main__":
     mj_agent = MjAgent(
         dahai_agent,
         reach_agent,
-        chi_agent,
+        chi_agent,  
         pon_agent,
         kan_agent
         )
     
     agents = [mj_agent] * 4
 
+    evaluate_result = Evaluator.evaluate(agents, obs, 1024)
+    
+
+
+
+
+def self_play_rulebase_agent():
+    from mjaigym.reward.kyoku_score_reward import KyokuScoreReward
+    from ml.custom_observer import SampleCustomObserver
+    from mjaigym.config import ModelConfig
+    from ml.model import  Head2Model, Head34Model
+    from ml.agent import MjAgent, InnerAgent, MaxUkeireMjAgent
+    from .evaluator import Evaluator
+
+    board = Board(game_type="one_kyoku")
+    obs = SampleCustomObserver(board, KyokuScoreReward)
+    
+    agents = [
+        MaxUkeireMjAgent(id=0, name="player0"),
+        MaxUkeireMjAgent(id=1, name="player1"),
+        MaxUkeireMjAgent(id=2, name="player2"),
+        MaxUkeireMjAgent(id=3, name="player3"),
+    ]
+
     evaluate_result = Evaluator.evaluate(agents, obs, 128)
+    
+    
+    for result in evaluate_result:
+        result.dump("output/sample/test")
+
+
+if __name__ == "__main__":
+    self_play_rulebase_agent()

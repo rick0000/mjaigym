@@ -19,8 +19,8 @@ class Board(object):
 
     def __init__(
             self, 
-            game_type='one_kyoku', 
-            seed=np.random.randint(low=0, high=os.sys.maxsize),
+            game_type='one_kyoku',
+            seed=None,
             names=None,
             dealer_message_callback=None,
         ):
@@ -150,7 +150,10 @@ class Board(object):
     def reset(self):
         
         self._current_seed = self._raw_seed
-        
+        if self._current_seed is None:
+            self._current_seed = np.random.randint(low=0, high=os.sys.maxsize)
+
+
         self.dealer_history = []
         self.renponse_history = []
         self.chicha = None
