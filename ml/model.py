@@ -56,16 +56,16 @@ class Model(metaclass=ABCMeta):
         raise NotImplementedError()
     
     @abstractmethod    
-    def evaluate(self, states, actions):
+    def evaluate(self, experiences):
         raise NotImplementedError()
     
     @abstractmethod
-    def update(self, states, actions):
+    def update(self, experiences):
         raise NotImplementedError()
 
 
-class Head34Model(Model):
-    """打牌用モデル
+class Head34SlModel(Model):
+    """教師あり打牌用モデル
     """
     def __init__(self, in_channels:int, mid_channels:int, blocks_num:int, learning_rate:float, batch_size:int):
         super().__init__(in_channels, mid_channels, blocks_num, learning_rate, batch_size)
@@ -89,7 +89,9 @@ class Head34Model(Model):
 
     def evaluate(self, experiences):
         batch_num = len(experiences) // self.batch_size
-        
+        if batch_num == 0:
+            return 0, 0
+
         total_loss = 0.0
         correct = 0
         total = 0
@@ -115,8 +117,9 @@ class Head34Model(Model):
         return float(total_loss / batch_num), float(acc)
 
     def update(self, experiences):
-
         batch_num = len(experiences) // self.batch_size
+        if batch_num == 0:
+            return 0, 0
         
         total_loss = 0.0
         correct = 0
@@ -146,8 +149,8 @@ class Head34Model(Model):
         return float(total_loss / batch_num), float(acc)
 
 
-class Head2Model(Model):
-    """立直、チー、ポン、カン用モデル
+class Head2SlModel(Model):
+    """教師あり立直、チー、ポン、カン用モデル
     """
     def __init__(self, in_channels:int, mid_channels:int, blocks_num:int, learning_rate:float, batch_size:int):
         super().__init__(in_channels, mid_channels, blocks_num, learning_rate, batch_size)
@@ -170,24 +173,66 @@ class Head2Model(Model):
         raise NotImplementedError()
 
     def evaluate(self, experiences):
-        states = [e[0] for e in experiences]
-        actions = [e[1] for e in experiences]
+        batch_num = len(experiences) // self.batch_size
+        if batch_num == 0:
+            return 0, 0
 
-        self.model.eval()
-        with torch.no_grad():
+        total_loss = 0.0
+        correct = 0
+        total = 0
+        for i in range(batch_num):
+            target_experiences = experiences[i*self.batch_size:(i+1)*self.batch_size]
+            states = [e[0] for e in target_experiences]
+            actions = [e[1] for e in target_experiences]
+
+            self.model.eval()
+            with torch.no_grad():
+                inputs = torch.Tensor(states).float().to(DEVICE)
+                targets = torch.Tensor(actions).long().to(DEVICE)
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, targets)
+                _, predicted = torch.max(outputs.data, 1)
+                correct += predicted.eq(targets.data).cpu().sum().detach()
+                total += len(states)
+                total_loss += loss.cpu().detach()
+
+            del states, actions, target_experiences, inputs, targets
+        gc.collect()    
+        acc = 100.0 * correct / (total + EPS)
+        return float(total_loss / batch_num), float(acc)
+
+    def update(self, experiences):
+        batch_num = len(experiences) // self.batch_size
+        if batch_num == 0:
+            return 0, 0
+        
+        total_loss = 0.0
+        correct = 0
+        total = 0
+        for i in range(batch_num):
+            target_experiences = experiences[i*self.batch_size:(i+1)*self.batch_size]
+            states = [e[0] for e in target_experiences]
+            actions = [e[1] for e in target_experiences]
+
+            self.model.train()
             inputs = torch.Tensor(states).float().to(DEVICE)
             targets = torch.Tensor(actions).long().to(DEVICE)
             outputs = self.model(inputs)
             loss = self.criterion(outputs, targets)
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
             _, predicted = torch.max(outputs.data, 1)
-            correct = predicted.eq(targets.data).cpu().sum().detach()
-            total = len(states)
-            acc = 100.0 * correct / (total + EPS)
-        
-        return loss, acc
+            correct += predicted.eq(targets.data).cpu().sum().detach()
+            total += len(states)
+            total_loss += loss.cpu().detach()
+            
+            del states, actions, target_experiences, inputs, targets
+        gc.collect()
 
-    def update(self, experiences):
-        raise NotImplementedError()
+        acc = 100.0 * correct / (total + EPS)
+        return float(total_loss / batch_num), float(acc)
+
 
 
 class CriticModel(Model):
@@ -205,9 +250,9 @@ class CriticModel(Model):
         raise NotImplementedError()
     
     @abstractmethod
-    def evaluate(self, states, actions):
+    def evaluate(self, experiences):
         raise NotImplementedError()
     
     @abstractmethod
-    def update(self, states, actions):
+    def update(self, experiences):
         raise NotImplementedError()

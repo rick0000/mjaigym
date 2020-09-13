@@ -13,7 +13,7 @@ from mjaigym.board.function.pai import Pai
 from mjaigym.board.mj_move import MjMove
 from ml.framework import SceneObservation, MjAgent, InnerAgent, MjObserver
 from ml.custom_observer import SampleCustomObserver
-from ml.model import  Head2Model, Head34Model
+from ml.model import  Head2SlModel, Head34SlModel
 
 
 class SimpleObserver(MjObserver):
@@ -68,11 +68,11 @@ def main():
     
     actions = obs.action_space
     agent_class = RandomAgent
-    dahai_agent = agent_class(actions["dahai_agent"], Head34Model, model_config)
-    reach_agent = agent_class(actions["reach_agent"], Head2Model, model_config)
-    chi_agent = agent_class(actions["chi_agent"], Head2Model, model_config)
-    pon_agent = agent_class(actions["pon_agent"], Head2Model, model_config)
-    kan_agent = agent_class(actions["kan_agent"], Head2Model, model_config)
+    dahai_agent = agent_class(actions["dahai_agent"], Head34SlModel, model_config)
+    reach_agent = agent_class(actions["reach_agent"], Head2SlModel, model_config)
+    chi_agent = agent_class(actions["chi_agent"], Head2SlModel, model_config)
+    pon_agent = agent_class(actions["pon_agent"], Head2SlModel, model_config)
+    kan_agent = agent_class(actions["kan_agent"], Head2SlModel, model_config)
 
     mj_agent = MjAgent(
         dahai_agent,

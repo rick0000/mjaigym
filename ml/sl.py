@@ -8,12 +8,13 @@ import gc
 import random
 import typing
 import pickle
+import datetime
 
 import numpy as np
 from tqdm import tqdm
 import multiprocessing
 from multiprocessing import Pool, Process, set_start_method
-import datetime
+
 
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.mj_move import MjMove
@@ -25,7 +26,7 @@ from .custom_observer import SampleCustomObserver
 import mjaigym.loggers as lgs
 from ml.framework import Experience
 from mjaigym.config import ModelConfig
-from ml.model import  Head2Model, Head34Model
+from ml.model import  Head2SlModel, Head34SlModel
 from ml.agent import InnerAgent, MjAgent, DahaiTrainableAgent, FixPolicyAgent
 
 
@@ -209,7 +210,7 @@ if __name__ == "__main__":
     env = SampleCustomObserver(board=ArchiveBoard(), reward_calclator_cls=KyokuScoreReward)
     actions = env.action_space
     
-    dahai_agent = DahaiTrainableAgent(actions["dahai_agent"], Head34Model, model_config)
+    dahai_agent = DahaiTrainableAgent(actions["dahai_agent"], Head34SlModel, model_config)
     reach_agent = FixPolicyAgent(np.array([0.0, 1.0])) # always do reach
     chi_agent = FixPolicyAgent(np.array([1.0, 0.0])) # never chi
     pon_agent = FixPolicyAgent(np.array([1.0, 0.0])) # never pon

@@ -24,7 +24,7 @@ from mjaigym.board.function.pai import Pai
 from mjaigym.board.mj_move import MjMove
 import mjaigym.loggers as lgs
 from ml.framework import Experience
-from ml.model import Model, Head2Model, Head34Model
+from ml.model import Model, Head2SlModel, Head34SlModel
 from mjaigym.client import MaxUkeireClient
 
 
