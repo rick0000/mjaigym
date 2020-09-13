@@ -6,9 +6,10 @@ from .framework import MjObserver
 from .features import *
 
 class SampleCustomObserver(MjObserver):
-    """特徴量抽出クラスを使ってMjObserverを実装した例。
-    自分の考えた特徴量を追加したい場合はFeaturesクラス、FuroAppendFeatureクラスを元に新たな特徴量クラスを作成し
-    OnTsumoFeaturesまたはOnOtherDahaiFeaturesに追加すると良い
+    """MjObserverを実装した例
+    特徴量抽出クラスであるFeaturesクラス、FuroAppendFeatureクラスを使って特徴量を生成している。
+    自分の考えた特徴量を追加したい場合はFeaturesクラス、FuroAppendFeatureクラスを元に
+    新たな特徴量抽出クラスを作成しOnTsumoFeaturesまたはOnOtherDahaiFeaturesに追加すると良い。
     """
 
     OnTsumoFeatures:List[Feature] = [
