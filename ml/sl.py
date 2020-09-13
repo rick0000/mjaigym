@@ -61,7 +61,7 @@ class SlTrainer():
 
     def train_loop(self, agent, env):
         lgs.logger_main.info("start train loop")
-
+        test_experience = self._get_test_experience(self.test_dir, env)
         mjson_paths = Path(self.train_dir).glob("**/*.mjson")
         
         mjson_buffer = deque(maxlen=self.udpate_interbal)
@@ -69,7 +69,7 @@ class SlTrainer():
         
 
         for i, mjson_path in enumerate(mjson_paths):
-            mjson_buffer.append((i, mjson_path))
+            mjson_buffer.append((i, mjson_path, copy.deepcopy(env)))
             if not (i > 0 and i % self.udpate_interbal == 0):
                 continue
             
@@ -112,8 +112,8 @@ class SlTrainer():
 
     def _analyze_one_game(self, args):
         try:
-            mjson_id, mjson_path = args
-            env = SampleCustomObserver(board=ArchiveBoard(), reward_calclator_cls=KyokuScoreReward)
+            mjson_id, mjson_path, env = args
+            
             one_game_experience = deque()
              
             mjson = Mjson.load(mjson_path)
@@ -146,14 +146,15 @@ class SlTrainer():
             return one_game_experience
         except KeyboardInterrupt:
             raise
-        except:
+        except Exception as e:
             lgs.logger_main.warn(f"fail to analyze {args}")
             return deque()
 
     def _get_test_experience(self, mjson_dir, env, max_game_num=500):
         mjson_paths = Path(mjson_dir).glob("**/*.mjson")
         lgs.logger_main.info("start generate test dataset")
-        test_path = Path("output/test_dataset.pkl")
+        test_path = Path(mjson_dir) / "test_dataset.pkl"
+        test_path.parent.mkdir(parents=True, exist_ok=True)
         if test_path.is_file():
             with open(test_path, "rb") as f:
                 return pickle.load(f)
@@ -185,8 +186,8 @@ class SlTrainer():
 
 
 if __name__ == "__main__":
-    train_dir = "/data/mjson/train"
-    test_dir = "/data/mjson/test"
+    train_dir = "./train"
+    test_dir = "./test"
     log_dir ="./output/logs"
     session_name = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     model_config = ModelConfig(

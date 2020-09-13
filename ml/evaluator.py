@@ -35,7 +35,7 @@ from ml.model import Model
 class Evaluator():
     @classmethod
     def evaluate(cls, agents, env, episode_count, render=False, use_multiprocess=False):
-        params = [(copy.deepcopy(env), render, agents) for i in range(episode_count)]
+        params = [(render, agents, copy.deepcopy(env)) for i in range(episode_count)]
         results = deque()
 
         if use_multiprocess:
@@ -55,9 +55,9 @@ class Evaluator():
 
     @classmethod
     def _play_one(cls, args):
-        env = args[0]
-        render = args[1]
-        agents = args[2]
+        render = args[0]
+        agents = args[1]
+        env = args[2]
 
         random.shuffle(agents)
         state, reward, done, info = env.reset()
