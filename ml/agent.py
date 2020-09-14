@@ -97,7 +97,7 @@ class MjAgent():
     def think_one_player(self, player_observation, player_possible_actions, player_id, board_state):
         if len(player_possible_actions) == 1:
             return player_possible_actions[0]
-        
+
         # if can hora, always hora.
         horas = [action for action in player_possible_actions if action["type"] == MjMove.hora.value]
         if len(horas) > 0:

@@ -364,7 +364,7 @@ class Board(object):
         ]
         
         for move_type in prior_order:    
-            moves = [r for r in responses.values() if ('type' in r) and (r['type'] == move_type.value)]
+            moves = [r for r in responses.values() if (type(r) == dict) and ('type' in r) and (r['type'] == move_type.value)]
             if len(moves) > 0:
                 if move_type == MjMove.none:
                     return moves[0:1]

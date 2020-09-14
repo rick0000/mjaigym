@@ -61,7 +61,6 @@ class SlTrainer():
 
     def train_loop(self, agent, env):
         lgs.logger_main.info("start train loop")
-        test_experience = self._get_test_experience(self.test_dir, env)
         mjson_paths = Path(self.train_dir).glob("**/*.mjson")
         
         mjson_buffer = deque(maxlen=self.udpate_interbal)

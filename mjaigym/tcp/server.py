@@ -287,7 +287,7 @@ class Server:
                 lgs.logger_server.warn(error_message)
 
     def on_join(self, message, connection, client_key):
-        for check_key in ['type', 'room', 'name', 'hash']:
+        for check_key in ['type', 'room', 'name']:
             if check_key not in message:
                 message = json.dumps({
                         "type":"error",
@@ -349,13 +349,13 @@ class Server:
             # manue room
             if len(self.waiting_rooms[room]) == 1 and 'manue' in room :
                 for i in range(3):
-                    thread = threading.Thread(target=self.run_manue, daemon=True)
+                    thread = threading.Thread(target=self.run_manue, args=(room, f"manue{i}"), daemon=True)
                     thread.start()
                     
 
-    def run_manue(self):
+    def run_manue(self, room_name, player_name):
         proc = subprocess.run([
-                "docker build -t manue:dev manue/. && docker run --rm -t manue:dev"
+                f"docker build -t manue:dev manue/. && docker run --rm manue:dev /mjai/mjai/run_manue.sh {room_name} {player_name}"
                 ], 
             shell=True,
             stdout=subprocess.DEVNULL,

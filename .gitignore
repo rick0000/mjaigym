@@ -21,3 +21,4 @@ error_kyoku.yaml
 config.yaml
 test
 train
+evaluate
