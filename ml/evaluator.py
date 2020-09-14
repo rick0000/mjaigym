@@ -41,7 +41,7 @@ from mjaigym.config import ModelConfig
 from ml.model import  Head2SlModel, Head34SlModel
 from ml.agent import MjAgent, InnerAgent
 from mjaigym.board import ClientBoard
-from mjaigym.agent import MaxUkeireMjAgent 
+from ml.agent import MaxUkeireMjAgent
 
 
 def on_message(mes, agent_name):
