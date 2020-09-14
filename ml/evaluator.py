@@ -42,7 +42,7 @@ from ml.model import  Head2SlModel, Head34SlModel
 from ml.agent import MjAgent, InnerAgent
 from mjaigym.board import ClientBoard
 from ml.agent import MaxUkeireMjAgent
-
+from stats_analysis import StatsAnalysis
 
 def on_message(mes, agent_name):
     print(f"{agent_name}<-server", mes)
@@ -145,6 +145,11 @@ class Evaluator():
         while len(server.rooms) > 0:
             time.sleep(1) # wait for tcp server paifu dump
 
+        # show stats
+        stats_analysis = StatsAnalysis()
+        stats_analysis.calclate_stats_from_dir(logdir)
+        stats_analysis.show_stats()
+
     @classmethod
     def tcp_evaluate_manue(cls, agent, env, episode_count):
         port = 48000
@@ -176,6 +181,10 @@ class Evaluator():
         while len(server.rooms) > 0:
             time.sleep(1) # wait for tcp server paifu dump
 
+        # show stats
+        stats_analysis = StatsAnalysis()
+        stats_analysis.calclate_stats_from_dir(logdir)
+        stats_analysis.show_stats()
         
 
 
@@ -220,7 +229,7 @@ def loacl_rulebase_agent():
     evaluate_result = Evaluator.evaluate(agents, obs, 128)
     
 
-def tcp_evaluate():
+def tcp_nn_agent():
     board = ClientBoard()
     obs = SampleCustomObserver(board, KyokuScoreReward)
     model_config = ModelConfig(resnet_repeat=40, mid_channels=128, learning_rate=0.001)
@@ -243,16 +252,21 @@ def tcp_evaluate():
     agents = [mj_agent] * 4
 
     Evaluator.tcp_evaluate(agents, obs, 1)
+    
+    
 
 
 
-def tcp_evaluate_manue():
+def tcp_nn_agent_manue():
     board = ClientBoard()
     obs = SampleCustomObserver(board, KyokuScoreReward)
     model_config = ModelConfig(resnet_repeat=40, mid_channels=128, learning_rate=0.001)
     actions = obs.action_space
     agent_class = InnerAgent
+    
     dahai_agent = agent_class(actions["dahai_agent"], Head34SlModel, model_config)
+    # dahai_agent.load("load_file_path")
+
     reach_agent = agent_class(actions["reach_agent"], Head2SlModel, model_config)
     chi_agent = agent_class(actions["chi_agent"], Head2SlModel, model_config)
     pon_agent = agent_class(actions["pon_agent"], Head2SlModel, model_config)
@@ -268,5 +282,7 @@ def tcp_evaluate_manue():
     
     Evaluator.tcp_evaluate_manue(mj_agent, obs, 1)
 
+
+
 if __name__ == "__main__":
-    tcp_evaluate()
+    tcp_nn_agent_manue()

@@ -289,6 +289,12 @@ class InnerAgent():
     def save(self, save_path):
         if self.model is not None:
             self.model.save(save_path)
+    
+    def load(self, load_path):
+        if self.model is not None:
+            self.initialize(self.observation)
+
+        self.model.load(load_path)
 
 
 
