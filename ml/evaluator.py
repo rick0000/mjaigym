@@ -42,7 +42,7 @@ from ml.model import  Head2SlModel, Head34SlModel
 from ml.agent import MjAgent, InnerAgent
 from mjaigym.board import ClientBoard
 from ml.agent import MaxUkeireMjAgent
-from stats_analysis import StatsAnalysis
+from ml.stats_analysis import StatsAnalysis
 
 def on_message(mes, agent_name):
     print(f"{agent_name}<-server", mes)
@@ -148,7 +148,7 @@ class Evaluator():
         # show stats
         stats_analysis = StatsAnalysis()
         stats_analysis.calclate_stats_from_dir(logdir)
-        stats_analysis.show_stats()
+        
 
     @classmethod
     def tcp_evaluate_manue(cls, agent, env, episode_count):
@@ -184,7 +184,7 @@ class Evaluator():
         # show stats
         stats_analysis = StatsAnalysis()
         stats_analysis.calclate_stats_from_dir(logdir)
-        stats_analysis.show_stats()
+        
         
 
 

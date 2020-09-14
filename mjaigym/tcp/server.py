@@ -355,7 +355,7 @@ class Server:
 
     def run_manue(self, room_name, player_name):
         proc = subprocess.run([
-                f"docker build -t manue:dev manue/. && docker run --rm manue:dev /mjai/mjai/run_manue.sh {room_name} {player_name}"
+                f"docker build -t manue:dev manue/. && docker run --rm manue:dev /mjai/mjai/run_manue.sh {player_name} {room_name}"
                 ], 
             shell=True,
             stdout=subprocess.DEVNULL,
