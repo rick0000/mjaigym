@@ -344,7 +344,6 @@ class Candidate():
             self.machi == 'ryanmen' and \
             self.fanpai_fan(self.janto.pais[0]) == 0
     
-    
 
     @property
     def ipeko(self):

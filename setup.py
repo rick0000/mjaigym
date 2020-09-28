@@ -9,7 +9,7 @@ setup(
         "gym",
         "joblib",
         "tqdm",
-        "dataclass",
+        "dataclasses",
         "tensorboard",
         "torch",
     ],
