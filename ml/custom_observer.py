@@ -35,7 +35,6 @@ class SampleCustomObserver(MjObserver):
             RestPaiInViewFeature,
             TehaiFeature,
             TypeFeature,
-            # HorapointDfsFeature,
         ]
     OnTsumoFeaturesLength = sum([f.get_length() for f in OnTsumoFeatures])
 
@@ -76,13 +75,21 @@ class SampleCustomObserver(MjObserver):
             target_feature_area = feature_area[start_index:start_index+feature_length]
             feature.calc(target_feature_area, state, id, oracle_enable_flag)
             start_index += feature_length
-        return feature_area
+        
+        dfs_feature_area = np.zeros((HorapointDfsFeature.get_length(), 34, 1), dtype='int8')
+        HorapointDfsFeature.calc(dfs_feature_area, state, id, oracle_enable_flag, self._dfs)
+        dfs_appended = np.concatenate([feature_area, dfs_feature_area], axis=0)
+        return dfs_appended
 
     def _calc_on_other_dahai_feature(self, state, id, candidate_action, oracle_enable_flag):
+        # ignore other dahai.
+        return None
+        """
         base_feature = self._calc_on_tsumo_feature(state, id, oracle_enable_flag)
         
         feature_area = np.zeros((self.OnOtherDahaiFeaturesLength, 34, 1), dtype='int8')
         start_index = 0
+        
         for feature in self.OnOtherDahaiFeatures:
             feature_length = feature.get_length()
             target_feature_area = feature_area[start_index:start_index+feature_length]
@@ -91,5 +98,6 @@ class SampleCustomObserver(MjObserver):
         
         furo_appended = np.concatenate([base_feature, feature_area], axis=0)
         return furo_appended
+        """
 
 

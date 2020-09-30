@@ -1,7 +1,11 @@
 import copy
 import math
+from typing import List
+from dataclasses import dataclass
+
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.function.mentsu import Mentsu
+from mjaigym.board.function.furo import Furo
 from mjaigym.board.function.shanten_analysis import ShantenAnalysis
 from mjaigym.board.function.mj_move import MjMove
 
@@ -78,38 +82,238 @@ class PointDatam():
     def ceil_points(self, points):
         return math.ceil(points / 100.0) * 100
 
+
+    
+@dataclass
+class HoraYakuInformation():
+    taken:Pai
+    all_pais:List[Pai]
+    hora_type:str
+    oya:bool
+    first_turn:bool
+    num_doras:int
+    num_uradoras:int
+    num_akadoras:int
+    reach:bool
+    ippatsu:bool
+    rinshan:bool
+    chankan:bool
+    haitei:bool
+    double_reach:bool
+    furos: List[Furo]
+    jikaze:str # str
+    bakaze:str # str
+
+
+
+
 class Candidate():
-    def __init__(self, hora, combination, taken_index):
-        self.hora = hora
+    @classmethod
+    def from_already_splited_chitoitsu(
+        cls,
+        tehais,
+        furos, # List[Furo]
+        taken, # 20
+        oya,
+        bakaze,
+        jikaze,
+        doras,
+        uradoras,
+        reach,
+        double_reach,
+        ippatsu,
+        rinshan,
+        haitei,
+        first_turn,
+        chankan,
+        num_akadoras,
+    ):
+        if len(furos) > 0:
+            return {
+                "fu":0,
+                "fan":0,
+                "yakus":[],
+                "points":0,
+                "oya_payment":0,
+                "ko_payment":0,
+            }
+
+        all_pais = tehais
+
+        num_doras = Hora.count_doras(all_pais, doras)
+        num_uradoras = Hora.count_doras(all_pais, uradoras)
+        # num_akadora need calclate outside.
+        
+        combination = "chitoitsu"
+        
+        hora_yaku_information = HoraYakuInformation(
+            taken=taken,
+            all_pais=all_pais,
+            hora_type="tsumo",
+            oya=oya,
+            first_turn=first_turn,
+            num_doras=num_doras,
+            num_uradoras=num_uradoras,
+            num_akadoras=num_akadoras,
+            reach=reach,
+            ippatsu=ippatsu,
+            rinshan=rinshan,
+            chankan=chankan,
+            haitei=haitei,
+            double_reach=double_reach,
+            furos=furos,
+            jikaze=jikaze,
+            bakaze=bakaze,
+        )
+       
+        best_candidate = Candidate(hora_yaku_information, combination, 0)
+        if best_candidate.valid:
+            return {
+                "fu":best_candidate.fu,
+                "fan":best_candidate.fan,
+                "yakus":best_candidate.yakus,
+                "points":best_candidate.points,
+                "oya_payment":best_candidate.oya_payment,
+                "ko_payment":best_candidate.ko_payment,
+            }
+        return {
+            "fu":0,
+            "fan":0,
+            "yakus":[],
+            "points":0,
+            "oya_payment":0,
+            "ko_payment":0,
+        }
+
+
+    @classmethod
+    def from_already_spliteds(
+        cls,
+        head, # 9
+        mentsus, # ((1,2,3), (4,5,6), (20,20,20), (32,32,32))
+        furos, # List[Furo]
+        taken, # 20
+        oya,
+        bakaze,
+        jikaze,
+        doras,
+        uradoras,
+        reach,
+        double_reach,
+        ippatsu,
+        rinshan,
+        haitei,
+        first_turn,
+        chankan,
+        num_akadoras,
+    ):
+        
+        # need before calclate dora
+        pais_buffer = Pai.from_idlist([head, head])
+         
+        for mentsu in mentsus:
+            pais_buffer.extend(Pai.from_idlist(list(mentsu)))
+        
+        free_pais = copy.copy(pais_buffer)
+
+        for furo in furos:
+            pais_buffer.extend(furo.pais)
+        all_pais = pais_buffer
+        
+        taken = Pai.from_id(taken)
+
+        num_doras = Hora.count_doras(all_pais, doras)
+        num_uradoras = Hora.count_doras(all_pais, uradoras)
+        # num_akadora need calclate outside.
+        
+        num_same_as_taken = len([f for f in free_pais if taken.is_same_symbol(f)])
+        
+        combination = [
+            ["toitsu", Pai.from_idlist([head,head])],
+        ]
+        for mentsu in mentsus:
+            if mentsu[0] == mentsu[1]:
+                combination.append(["kotsu", Pai.from_idlist(mentsu)])
+            else:
+                combination.append(["shuntsu", Pai.from_idlist(mentsu)])
+        
+        hora_yaku_information = HoraYakuInformation(
+            taken=taken,
+            all_pais=all_pais,
+            hora_type="tsumo",
+            oya=oya,
+            first_turn=first_turn,
+            num_doras=num_doras,
+            num_uradoras=num_uradoras,
+            num_akadoras=num_akadoras,
+            reach=reach,
+            ippatsu=ippatsu,
+            rinshan=rinshan,
+            chankan=chankan,
+            haitei=haitei,
+            double_reach=double_reach,
+            furos=furos,
+            jikaze=jikaze,
+            bakaze=bakaze,
+        )
+
+        candidates = []
+        for i in range(num_same_as_taken):
+            candidates.append(Candidate(hora_yaku_information, combination, i))
+        
+        if len(candidates) > 0:
+            best_candidate = max(candidates, key=lambda x:(x.fan, x.points))
+            if best_candidate.valid:
+                return {
+                    "fu":best_candidate.fu,
+                    "fan":best_candidate.fan,
+                    "yakus":best_candidate.yakus,
+                    "points":best_candidate.points,
+                    "oya_payment":best_candidate.oya_payment,
+                    "ko_payment":best_candidate.ko_payment,
+                }
+        return {
+            "fu":0,
+            "fan":0,
+            "yakus":[],
+            "points":0,
+            "oya_payment":0,
+            "ko_payment":0,
+        }
+        
+
+    def __init__(self, hora_yakuinfo, combination, taken_index):
+        self.hora_yakuinfo = hora_yakuinfo
+        
         self.yakus = []
         self.combination = combination
         self.taken_index = taken_index
-        self.all_pais = hora.all_pais
+        self.all_pais = self.hora_yakuinfo.all_pais
         self.mentsus = []
         self.janto = None
-
+        
         total_taken = 0
-        if combination == 'chitoitsu':
+        if self.combination == 'chitoitsu':
             self.machi = 'tanki'
             uniq_all_pais = list(set(self.all_pais))
             for pai in uniq_all_pais:
                 mentsu = Mentsu(pais=[pai, pai], type='toitsu', visibility='an')
-                if pai.is_same_symbol(self.hora.taken):
+                if pai.is_same_symbol(self.hora_yakuinfo.taken):
                     self.janto = mentsu
                 else:
                     self.mentsus.append(mentsu)
-        elif combination == 'kokushimuso':
+        elif self.combination == 'kokushimuso':
             self.machi = 'tanki'
         else:
-            for mentsu_type, mentsu_pais in combination:
-                num_this_taken = len([p for p in mentsu_pais if self.hora.taken.is_same_symbol(p)])
-                has_taken = taken_index >= total_taken and taken_index < total_taken + num_this_taken
+            for mentsu_type, mentsu_pais in self.combination:
+                num_this_taken = len([p for p in mentsu_pais if self.hora_yakuinfo.taken.is_same_symbol(p)])
+                has_taken = self.taken_index >= total_taken and self.taken_index < total_taken + num_this_taken
                 if mentsu_type == 'toitsu':
                     if self.janto:
                         raise Exception('should not happen')
                     self.janto = Mentsu(pais=mentsu_pais, type='toitsu', visibility=None)
                 else:
-                    min_an = 'min' if (has_taken and self.hora.hora_type == 'ron') else 'an'
+                    min_an = 'min' if (has_taken and self.hora_yakuinfo.hora_type == 'ron') else 'an'
                     self.mentsus.append(Mentsu(
                         pais=mentsu_pais,
                         type=mentsu_type,
@@ -121,17 +325,17 @@ class Candidate():
                     elif mentsu_type == 'kotsu':
                         self.machi = 'shanpon'
                     elif mentsu_type == 'shuntsu':
-                        if self.hora.taken.is_same_symbol(mentsu_pais[1]):
+                        if self.hora_yakuinfo.taken.is_same_symbol(mentsu_pais[1]):
                             self.machi = 'kanchan'
-                        elif (mentsu_pais[0].number == 1 and self.hora.taken.number == 3) or \
-                            (mentsu_pais[0].number == 7 and self.hora.taken.number == 7):
+                        elif (mentsu_pais[0].number == 1 and self.hora_yakuinfo.taken.number == 3) or \
+                            (mentsu_pais[0].number == 7 and self.hora_yakuinfo.taken.number == 7):
                             self.machi = 'penchan'
                         else:
                             self.machi = 'ryanmen'
                 total_taken += num_this_taken
 
         # assert self.machi is not None
-        for furo in hora.furos:
+        for furo in self.hora_yakuinfo.furos:
             an_min = 'an' if (furo.type == 'ankan') else 'min'
             self.mentsus.append(Mentsu(
                 pais=sorted([f.remove_red() for f in furo.pais]),
@@ -143,7 +347,7 @@ class Candidate():
         self.fan = sum([y[1] for y in self.yakus])
         self.fu = self.get_fu()
         
-        datum = PointDatam(self.fu, self.fan, self.hora.oya, self.hora.hora_type)
+        datum = PointDatam(self.fu, self.fan, self.hora_yakuinfo.oya, self.hora_yakuinfo.hora_type)
         self.points = datum.points
         self.oya_payment = datum.oya_payment
         self.ko_payment = datum.ko_payment
@@ -161,9 +365,9 @@ class Candidate():
             return 20
         else:
             fu = 20
-            if self.menzen and self.hora.hora_type == 'ron':
+            if self.menzen and self.hora_yakuinfo.hora_type == 'ron':
                 fu += 10
-            if self.hora.hora_type == 'tsumo' and self.pinfu == False:
+            if self.hora_yakuinfo.hora_type == 'tsumo' and self.pinfu == False:
                 fu += 2
             if self.menzen == False and self.pinfu:
                 fu += 2
@@ -181,7 +385,9 @@ class Candidate():
             
             return math.ceil(fu / 10.0) * 10
 
-    
+    @property
+    def valid(self):
+        return len([y for y in self.yakus if y[0] not in ['dora', 'uradora', 'akadora']]) > 0
 
     def add_yaku(self, name, menzen_fan, kui_fan):
         fan = menzen_fan if self.menzen else kui_fan
@@ -197,9 +403,9 @@ class Candidate():
             self.yakus.pop(remove_index)
 
     def get_yakus(self):
-        if self.hora.first_turn and self.hora.hora_type == 'tsumo' and self.hora.oya:
+        if self.hora_yakuinfo.first_turn and self.hora_yakuinfo.hora_type == 'tsumo' and self.hora_yakuinfo.oya:
             self.add_yaku('tenho', YAKUMAN_FAN, 0)
-        if self.hora.first_turn and self.hora.hora_type == 'tsumo' and not self.hora.oya:
+        if self.hora_yakuinfo.first_turn and self.hora_yakuinfo.hora_type == 'tsumo' and not self.hora_yakuinfo.oya:
             self.add_yaku('chiho', YAKUMAN_FAN, 0)
         if self.combination == 'kokushimuso':
             self.add_yaku('kokushimuso', YAKUMAN_FAN, 0)
@@ -225,16 +431,16 @@ class Candidate():
         if len(self.yakus) > 0:
             return # 役満の場合は後の役を考慮しない
         
-        self.add_yaku('dora', self.hora.num_doras, self.hora.num_doras)
-        self.add_yaku('uradora', self.hora.num_uradoras, self.hora.num_uradoras)
-        self.add_yaku('akadora', self.hora.num_akadoras, self.hora.num_akadoras)
+        self.add_yaku('dora', self.hora_yakuinfo.num_doras, self.hora_yakuinfo.num_doras)
+        self.add_yaku('uradora', self.hora_yakuinfo.num_uradoras, self.hora_yakuinfo.num_uradoras)
+        self.add_yaku('akadora', self.hora_yakuinfo.num_akadoras, self.hora_yakuinfo.num_akadoras)
 
         # 一翻
-        if self.hora.reach:
+        if self.hora_yakuinfo.reach:
             self.add_yaku('reach', 1, 0)
-        if self.hora.ippatsu:
+        if self.hora_yakuinfo.ippatsu:
             self.add_yaku('ippatsu', 1, 0)
-        if self.menzen and self.hora.hora_type == 'tsumo':
+        if self.menzen and self.hora_yakuinfo.hora_type == 'tsumo':
             self.add_yaku('menzenchin_tsumoho', 1, 0)
         if all([p.is_yaochu() == False for p in self.all_pais]):
             self.add_yaku('tanyaochu', 1, 1)
@@ -247,13 +453,13 @@ class Candidate():
             self.add_yaku('bakaze', 1, 1)
         if self.jikaze:
             self.add_yaku('jikaze', 1, 1)
-        if self.hora.rinshan:
+        if self.hora_yakuinfo.rinshan:
             self.add_yaku('rinshankaiho', 1, 1)
-        if self.hora.chankan:
+        if self.hora_yakuinfo.chankan:
             self.add_yaku('chankan', 1, 1)
-        if self.hora.haitei and self.hora.hora_type == 'tsumo':
+        if self.hora_yakuinfo.haitei and self.hora_yakuinfo.hora_type == 'tsumo':
             self.add_yaku('haiteiraoyue', 1, 1)
-        if self.hora.haitei and self.hora.hora_type == 'ron':
+        if self.hora_yakuinfo.haitei and self.hora_yakuinfo.hora_type == 'ron':
             self.add_yaku('hoteiraoyui', 1, 1)
 
 
@@ -279,7 +485,7 @@ class Candidate():
             self.add_yaku('sankantsu', 2, 2)
         if self.shosangen:
             self.add_yaku('shosangen', 2, 2)
-        if self.hora.double_reach:
+        if self.hora_yakuinfo.double_reach:
             self.add_yaku('double_reach', 2, 0)
             self.delete_yaku('reach')
         
@@ -303,7 +509,7 @@ class Candidate():
 
     @property
     def menzen(self):
-        return len([f for f in self.hora.furos if f.type != 'ankan']) == 0
+        return len([f for f in self.hora_yakuinfo.furos if f.type != 'ankan']) == 0
 
     @property
     def num_anko(self):
@@ -356,11 +562,11 @@ class Candidate():
 
     @property
     def jikaze(self):
-        return any([m.type in ['kotsu', 'kantsu'] and m.pais[0].str == self.hora.jikaze for m in self.mentsus])
+        return any([m.type in ['kotsu', 'kantsu'] and m.pais[0].str == self.hora_yakuinfo.jikaze for m in self.mentsus])
 
     @property
     def bakaze(self):
-        return any([m.type in ['kotsu', 'kantsu'] and m.pais[0].str == self.hora.bakaze for m in self.mentsus])
+        return any([m.type in ['kotsu', 'kantsu'] and m.pais[0].str == self.hora_yakuinfo.bakaze for m in self.mentsus])
 
     @property
     def sanshokudojun(self):
@@ -452,9 +658,9 @@ class Candidate():
         if pai.is_sangenpai():
             return 1
         fan = 0
-        if pai.str == self.hora.bakaze:
+        if pai.str == self.hora_yakuinfo.bakaze:
             fan += 1
-        if pai.str == self.hora.jikaze:
+        if pai.str == self.hora_yakuinfo.jikaze:
             fan += 1
         return fan
         
@@ -504,8 +710,8 @@ class Hora():
         
         self.all_pais = self.free_pais + furos_flatten
 
-        self.num_doras = self.count_doras(self.doras)
-        self.num_uradoras = self.count_doras(self.uradoras)
+        self.num_doras = Hora.count_doras(self.all_pais, self.doras)
+        self.num_uradoras = Hora.count_doras(self.all_pais, self.uradoras)
         self.num_akadoras = len([p for p in self.all_pais if p.is_red])
 
         # print(f"num_akadoras:{self.num_akadoras}")
@@ -540,7 +746,7 @@ class Hora():
 
     @property
     def valid(self):
-        return len([y for y in self.yakus if y[0] not in ['dora', 'uradora', 'akadora']]) > 0
+        return self.best_candidate.valid
 
     @property
     def oya_payment(self):
@@ -550,15 +756,15 @@ class Hora():
     def ko_payment(self):
         return self.best_candidate.ko_payment
 
-    def count_doras(self, target_doras):
+    @classmethod
+    def count_doras(cls, all_pais, target_doras):
         dora_sum = 0
-        all_pais = self.all_pais
         for td in target_doras:
             dora_sum += sum([1 for p in all_pais if Pai.is_same_symbol(td,p)])
         return dora_sum
 
 
     def __str__(self):
-        return self.best_candidate.__str__() + str(self.all_pais)
+        return self.best_candidate.__str__()
 
 

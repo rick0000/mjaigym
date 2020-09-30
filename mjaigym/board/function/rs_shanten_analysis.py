@@ -11,6 +11,15 @@ class RsShantenAnalysis:
 
 
     def calc_all_shanten(self, tehai, furonum):
+        """returns [normal, kokushi, chitoi]
+
+        Args:
+            tehai ([type]): [description]
+            furonum ([type]): [description]
+
+        Returns:
+            []
+        """
         return shanten.get_shanten_all(tehai, furonum)
 
     @classmethod

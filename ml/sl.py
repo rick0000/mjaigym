@@ -9,6 +9,7 @@ import random
 import typing
 import pickle
 import datetime
+import itertools
 
 import numpy as np
 from tqdm import tqdm
@@ -73,18 +74,22 @@ class SlTrainer():
                 continue
             
             # start analyze
-            results = []
+            results = deque()
             if self.use_multiprocess:
                 with multiprocessing.get_context('spawn').Pool(processes=multiprocessing.cpu_count()) as pool:
                     with tqdm(total=len(mjson_buffer)) as t:
                         for one_mjson_datasets in pool.imap_unordered(self._analyze_one_game, mjson_buffer):
-                            results.extend(one_mjson_datasets)
+                            results.append(one_mjson_datasets)
                             t.update(1)
                     pool.close()
                     pool.terminate()
             else:
-                for mjson in mjson_buffer:
-                    results.extend(self._analyze_one_game(mjson))
+                for mjson in tqdm(mjson_buffer):
+                    one_mjson_datasets = self._analyze_one_game(mjson)
+                    
+                    results.append(one_mjson_datasets)
+
+            results = list(itertools.chain.from_iterable(results))
 
             # update agent
             update_result = agent.update(results)
@@ -147,6 +152,8 @@ class SlTrainer():
             raise
         except Exception as e:
             lgs.logger_main.warn(f"fail to analyze {args}")
+            import traceback
+            print(traceback.format_exc())
             return deque()
 
     def _get_test_experience(self, mjson_dir, env, max_game_num=500):
@@ -185,8 +192,8 @@ class SlTrainer():
 
 
 if __name__ == "__main__":
-    train_dir = "./train"
-    test_dir = "./test"
+    train_dir = "/data/mjson/train"
+    test_dir = "/data/mjson/test"
     log_dir ="./output/logs"
     session_name = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     model_config = ModelConfig(
@@ -201,7 +208,7 @@ if __name__ == "__main__":
             test_dir,
             log_dir=log_dir,
             session_name=session_name,
-            use_multiprocess=True,
+            use_multiprocess=False,
             udpate_interbal=64,
             batch_size=model_config.batch_size,
             evaluate_per_update=10

@@ -56,7 +56,7 @@ class BoardState():
         """
         return self.state['dora_markers']
     @property
-    def bakaze(self)->Pai:
+    def bakaze(self)->str:
         """場風
         """
         return self.state['bakaze']
@@ -82,7 +82,7 @@ class BoardState():
         """
         return self.state['scores']
     @property
-    def jikaze(self)->List[Pai]:
+    def jikaze(self)->List[str]:
         """各プレーヤーの自風
         """
         return self.state['jikaze']

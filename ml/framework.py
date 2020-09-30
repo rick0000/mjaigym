@@ -32,7 +32,7 @@ from mjaigym.board import Board, BoardState
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.mj_move import MjMove
 from ml.model import Model
-
+from mjaigym.board.function.efficient_dfs import Dfs
 
 @dataclass
 class SceneObservation:
@@ -99,6 +99,7 @@ class MjObserver(metaclass=ABCMeta):
         self._board = board
         self.reward_calclator = reward_calclator_cls()
         self.oracle_rate = oracle_rate
+        self._dfs = Dfs()
 
     @abstractmethod
     def get_tsumo_observe_channels_num(self):

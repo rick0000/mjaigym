@@ -5,10 +5,11 @@ import numpy as np
 from mjaigym.board.function.rs_shanten_analysis import RsShantenAnalysis
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.function.hora import Hora
+from mjaigym.board.function.hora_rs import HoraRs
 from mjaigym.board.function.furo import Furo
 
-from .shanten_score_cache import ShantenScoreCache
-CACHE = ShantenScoreCache()
+# from .shanten_score_cache import ShantenScoreCache
+# CACHE = ShantenScoreCache()
 
 
 class Dfs():
@@ -195,7 +196,7 @@ def get_score(tehais_num, furos, taken):
     taken_index = tehais.index(Pai.from_id(taken))
     taken = tehais.pop(taken_index)
 
-    hora = Hora(
+    hora = HoraRs(
             tehais=tehais,
             furos=furos,
             taken=taken,

@@ -1,14 +1,16 @@
+import numpy as np
+import os
+import pprint
+from typing import List
+import copy
+
 from mjaigym.board.function.yama import Yama
 from mjaigym.board.function.player import Player
 from mjaigym.board.function.mj_move import MjMove
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.function.hora import Hora
 from mjaigym.board.board_state import BoardState
-import numpy as np
-import os
-import pprint
-from typing import List
-import copy
+from mjaigym.board.function.hora_rs import HoraRs
 
 
 class Board(object):
@@ -1155,7 +1157,8 @@ class Board(object):
             uradoras = []
         
         hora_player = self.players[action['actor']]
-        return Hora(
+        # return Hora(
+        return HoraRs(
             tehais=tehais,
             furos =hora_player.furos,
             taken=Pai.from_str(action['pai']),

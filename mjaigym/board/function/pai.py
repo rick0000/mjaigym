@@ -38,6 +38,10 @@ class Pai:
 
 
     @classmethod
+    def from_idlist(cls, pais:List[str]):
+        return [Pai.from_id(p) for p in pais]
+
+    @classmethod
     def from_list(cls, pais:List[str]):
         return [Pai.from_str(p) for p in pais]
     
