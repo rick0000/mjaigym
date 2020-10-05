@@ -24,6 +24,8 @@ BASE_FU_MAP = {
     'kantsu':8,
 }
 
+
+
 GREEN_PAIS = ['2s','3s', '4s', '6s', '8s', 'F']
 CHUREN_NUMBERS = [1,1,1,2,3,4,5,6,7,8,9,9,9]
 CHUREN_NUMBERS_ALL_VALIATION = []
@@ -104,9 +106,6 @@ class HoraYakuInformation():
     jikaze:str # str
     bakaze:str # str
 
-
-
-
 class Candidate():
     @classmethod
     def from_already_splited_chitoitsu(
@@ -119,13 +118,6 @@ class Candidate():
         jikaze,
         doras,
         uradoras,
-        reach,
-        double_reach,
-        ippatsu,
-        rinshan,
-        haitei,
-        first_turn,
-        chankan,
         num_akadoras,
     ):
         if len(furos) > 0:
@@ -143,7 +135,7 @@ class Candidate():
         num_doras = Hora.count_doras(all_pais, doras)
         num_uradoras = Hora.count_doras(all_pais, uradoras)
         # num_akadora need calclate outside.
-        
+        is_menzen = len([f for f in furos if f.type != 'ankan']) == 0
         combination = "chitoitsu"
         
         hora_yaku_information = HoraYakuInformation(
@@ -151,21 +143,21 @@ class Candidate():
             all_pais=all_pais,
             hora_type="tsumo",
             oya=oya,
-            first_turn=first_turn,
+            first_turn=False,
             num_doras=num_doras,
             num_uradoras=num_uradoras,
             num_akadoras=num_akadoras,
-            reach=reach,
-            ippatsu=ippatsu,
-            rinshan=rinshan,
-            chankan=chankan,
-            haitei=haitei,
-            double_reach=double_reach,
+            reach=is_menzen,
+            ippatsu=False,
+            rinshan=False,
+            chankan=False,
+            haitei=False,
+            double_reach=False,
             furos=furos,
             jikaze=jikaze,
             bakaze=bakaze,
         )
-       
+        
         best_candidate = Candidate(hora_yaku_information, combination, 0)
         if best_candidate.valid:
             return {
@@ -198,13 +190,6 @@ class Candidate():
         jikaze,
         doras,
         uradoras,
-        reach,
-        double_reach,
-        ippatsu,
-        rinshan,
-        haitei,
-        first_turn,
-        chankan,
         num_akadoras,
     ):
         
@@ -219,7 +204,7 @@ class Candidate():
         for furo in furos:
             pais_buffer.extend(furo.pais)
         all_pais = pais_buffer
-        
+        is_menzen = len([f for f in furos if f.type != 'ankan']) == 0
         taken = Pai.from_id(taken)
 
         num_doras = Hora.count_doras(all_pais, doras)
@@ -242,16 +227,16 @@ class Candidate():
             all_pais=all_pais,
             hora_type="tsumo",
             oya=oya,
-            first_turn=first_turn,
+            first_turn=False,
             num_doras=num_doras,
             num_uradoras=num_uradoras,
             num_akadoras=num_akadoras,
-            reach=reach,
-            ippatsu=ippatsu,
-            rinshan=rinshan,
-            chankan=chankan,
-            haitei=haitei,
-            double_reach=double_reach,
+            reach=is_menzen,
+            ippatsu=False,
+            rinshan=False,
+            chankan=False,
+            haitei=False,
+            double_reach=False,
             furos=furos,
             jikaze=jikaze,
             bakaze=bakaze,

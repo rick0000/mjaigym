@@ -169,7 +169,6 @@ def test_dfs_score():
             nums, 
             furos=[],
             depth=3,
-            reach=True,
             shanten_chitoitsu=chitoitsu_shanten,
             doras=doras,
         )
@@ -194,19 +193,71 @@ def test_dfs_pattern_kokushi():
     _, shanten_kokushi, _ = shanten.get_shanten_all(nums, 0)
 
     results = dfs.dfs_with_score_kokushi(
-            nums, 
+            nums,
             furos=[],
             depth=3,
-            oya = oya,
+            oya=oya,
             shanten_kokushi=shanten_kokushi,
         )
     
     print(f"{nums} \n-> {results}, depth:{depth}, {[d.id for d in doras]}")
     assert len(results) > 0
-    
-    result = results[0]
-    hora_pattern = result[0]
-    hora_dist = result[1]
-    assert "kokushimuso" in hora_pattern["yakus"]
 
+    kokushi_exists = False    
+    for result in results:
+        result = results[0]
+        hora_pattern = result[0]
+        hora_dist = result[1]
+        if any([yakus[0] =="kokushimuso" for yakus in hora_pattern["yakus"]]):
+            kokushi_exists = True
+    assert kokushi_exists
+
+
+def test_bench_dahaied_dfs():
+    import datetime
+    dfs = Dfs()
+    # can add new dora and dora tanki test
+    nums = [
+        0,0,1,3,0,0,1,0,0,
+        0,0,0,1,0,0,0,0,0,
+        0,0,0,1,1,0,0,3,0,
+        0,0,0,3,0,0,0,
+    ]
+    dora_ids = [1, 5, 27, 33]
+    doras = [p for p in Pai.from_idlist(dora_ids)]
+    depth = 3
+    shanten_cache = {}
+    dahaied_results = {}
+    start = datetime.datetime.now()
+    for _ in range(10):
+        for i in range(len(nums)):
+            if nums[i]==0:
+                continue
+            nums[i] -= 1
+            normal_shanten, _, _ = shanten.get_shanten_all(nums, 0)
+                
+            results = dfs.dfs_with_score_normal(
+                tehai=nums, 
+                furos=[], 
+                depth=depth, 
+                shanten_normal=normal_shanten,
+                oya=False,
+                bakaze="E", 
+                jikaze="S", 
+                doras=doras, 
+                uradoras=[],
+                num_akadoras=0,
+            )
+            # print(f"{nums} \n-> {results}, depth:{depth}, {[d.id for d in doras]}")
+            dahaied_results[i] = results
+            nums[i] += 1
+
+            # print(i, "shanten", normal_shanten, "results len", len(results))
+            # for result in results:
+            #     print(i, result)
+
+
+    end = datetime.datetime.now()
+    print(f"need time for dfs {end - start}")
+    assert len(dahaied_results) > 0
 

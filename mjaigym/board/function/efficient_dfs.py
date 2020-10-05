@@ -1,56 +1,96 @@
+import os
 from collections import deque
 import itertools
 import copy
 import joblib
 from typing import List
+from enum import Enum
 
 from mjaigym.board.function.rs_shanten_analysis import RsShantenAnalysis
 from mjaigym.board.function.hora import Hora, Candidate
 from mjaigym import shanten
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.function.furo import Furo
-
-MANZU=0
-PINZU=1
-SOUZU=2
-JI=3
+from mjaigym.board.function.dfs_result import DfsResult, DfsResultType
 
 CHANGE_CACHE = "change_cache.pkl"
 
+class Syu(Enum):
+    Manzu=0
+    Pinzu=1
+    Souzu=2
+    Ji=3
+
 class Dfs():
     def __init__(self):
-        self.changed_buffer_with_head = {MANZU:{}, PINZU:{}, SOUZU:{}, JI:{}}
-        self.changed_buffer_nohead = {MANZU:{}, PINZU:{}, SOUZU:{}, JI:{}}
+        self.changed_buffer_with_head = {Syu.Manzu:{}, Syu.Pinzu:{}, Syu.Souzu:{}, Syu.Ji:{}}
+        self.changed_buffer_nohead = {Syu.Manzu:{}, Syu.Pinzu:{}, Syu.Souzu:{}, Syu.Ji:{}}
         self.tehai_change_cache = {}
         self.head_tehai_change_cache = {}
         self.hora_cash = {}
 
-    def create_change(self, depth):
+    def create_change(self, depth, mode):
+        if mode % 3 == 2:
+            return self._create_change14(depth)
+        elif mode % 3 == 1:
+            return self._create_change13(depth)
+        
+
+
+    def _create_change13(self, depth):
+        cache_file_name = f"cache/{depth}_13_{CHANGE_CACHE}"
         try:
-            return joblib.load(str(depth)+CHANGE_CACHE)
+            
+            return joblib.load(cache_file_name)
+            pass
+        except:
+            pass
+        
+        result = self._create_change(depth, change_sum=1)
+
+        try:
+            os.makedirs(os.path.dirname(cache_file_name), exist_ok=True)
+            joblib.dump(result, cache_file_name)
+        except:
+            print("fail to save change cache")
+        return result
+
+        
+    def _create_change14(self, depth):
+        cache_file_name = f"cache/{depth}_14_{CHANGE_CACHE}"
+        try:            
+            return joblib.load(cache_file_name)
+            pass
         except:
             pass
 
+        result = self._create_change(depth, change_sum=0)
+
+        try:
+            os.makedirs(os.path.dirname(cache_file_name), exist_ok=True)
+            joblib.dump(result, cache_file_name)
+        except:
+            print("fail to save change cache")
+
+        return result
+
+    def _create_change(self, depth, change_sum):
         m_sub = range(4)
         m_add = range(4)
         result = deque()
-        ranges = list(range(depth+1))
-        minus_ranges = list(range(-depth,1))
-        for (m_sub, m_add) in itertools.product(minus_ranges, ranges):
-            for (p_sub, p_add) in itertools.product(minus_ranges, ranges):
-                for (s_sub, s_add) in itertools.product(minus_ranges, ranges):
-                    for (j_sub, j_add) in itertools.product(minus_ranges, ranges):
-                        if not (m_sub + m_add + p_sub + p_add + s_sub + s_add + j_sub + j_add) == 0:
+        add_ranges = list(range(depth+1))
+        minus_ranges = list(range(-(depth),1))
+        for (m_sub, m_add) in itertools.product(minus_ranges, add_ranges):
+            for (p_sub, p_add) in itertools.product(minus_ranges, add_ranges):
+                for (s_sub, s_add) in itertools.product(minus_ranges, add_ranges):
+                    for (j_sub, j_add) in itertools.product(minus_ranges, add_ranges):
+                        if not (m_sub + m_add + p_sub + p_add + s_sub + s_add + j_sub + j_add) == change_sum:
                             continue
-                        if (abs(m_sub) + m_add + abs(p_sub) + p_add + abs(s_sub) + s_add + abs(j_sub) + j_add) > depth * 2:
+                        if (abs(m_sub) + m_add + abs(p_sub) + p_add + abs(s_sub) + s_add + abs(j_sub) + j_add) > depth * 2 - change_sum:
                             continue
                         result.append(
                             ((m_sub,m_add), (p_sub, p_add), (s_sub, s_add), (j_sub, j_add))
                         )
-        try:
-            joblib.dump(result, str(depth)+CHANGE_CACHE)
-        except:
-            print("fail to save change cache")
 
         return result
 
@@ -58,34 +98,44 @@ class Dfs():
     def dfs_chitoitsu(self, tehai, depth, doras, chitoitsu_shanten):
         """returns max point dfs patten, not all pattern, by considering doras.
         """
+        tehai_sum = sum(tehai)
         
-        results = []
+
+        if tehai_sum == 13:
+            depth_offset = 1
+        elif tehai_sum == 14:
+            depth_offset = 0
+        else:
+            return []
+
+        results = set()
         for target_depth in range(depth+1):
             target_depth_dfs_result = self._dfs_chitoitsu(tehai, target_depth, doras, chitoitsu_shanten)
+            
             if target_depth_dfs_result is not None:
-                results.append((target_depth_dfs_result, target_depth))
+                results.add(target_depth_dfs_result)
         return results
 
+
     def _dfs_chitoitsu(self, tehai, depth, doras, chitoitsu_shanten):
-        
         if chitoitsu_shanten - depth > -1:
             return None
 
         new_toitsu_ids = []
-        
+
         toitsu_ids = []
         addable_dora_toitsu_candidates = []
         addable_dora_tanki_candidates = []
         addable_no_dora_tanki_candidates = []
+        addable_no_dora_toitsu_candidates = []
         no_dora_toitsu_ids = []
         dora_ids = [d.id for d in doras]
-
+        
         for i,num in enumerate(tehai):
             if num >= 2:
                 toitsu_ids.append(i)
                 if i not in dora_ids:
                     no_dora_toitsu_ids.append(i)
-
             elif num == 1:
                 if i in dora_ids:
                     addable_dora_tanki_candidates.append(i)
@@ -94,16 +144,23 @@ class Dfs():
             elif num == 0:
                 if i in dora_ids:
                     addable_dora_toitsu_candidates.append(i)
+                else:
+                    addable_no_dora_toitsu_candidates.append(i)
         
-        
+        new_toitsu_num = (chitoitsu_shanten+1) - (7-len(toitsu_ids))
+        use_tanki_num = 7-len(toitsu_ids)-new_toitsu_num
+        # print("new_toitsu_num,use_tanki_num",new_toitsu_num,use_tanki_num)
+
         rest_depth = depth
 
         # add up to 7 toitsu
-        while len(toitsu_ids) + len(new_toitsu_ids) < 7\
+        while new_toitsu_num > 0\
+                and len(toitsu_ids) + len(new_toitsu_ids) < 7\
                 and len(addable_dora_toitsu_candidates) > 0\
                 and rest_depth >= 2:
             dora_toitsu_id = addable_dora_toitsu_candidates.pop()
             new_toitsu_ids.append(dora_toitsu_id)
+            # print("dora_toitsu_id",dora_toitsu_id)
             rest_depth -= 2
 
         while len(toitsu_ids) + len(new_toitsu_ids) < 7\
@@ -111,7 +168,24 @@ class Dfs():
                 and rest_depth >= 1:
             dora_tanki_id = addable_dora_tanki_candidates.pop()
             new_toitsu_ids.append(dora_tanki_id)
+            # print("dora_tanki_id",dora_tanki_id)
             rest_depth -= 1
+        
+        while len(toitsu_ids) + len(new_toitsu_ids) < 7\
+                and len(addable_no_dora_tanki_candidates) > 0\
+                and rest_depth >= 1:
+            nodora_tanki = addable_no_dora_tanki_candidates.pop()
+            new_toitsu_ids.append(nodora_tanki)
+            # print("nodora_tanki", nodora_tanki)
+            rest_depth -= 1
+        
+        while len(toitsu_ids) + len(new_toitsu_ids) < 7\
+                and len(addable_no_dora_toitsu_candidates) > 0\
+                and rest_depth >= 2:
+            nodora_toitsu = addable_no_dora_toitsu_candidates.pop()
+            new_toitsu_ids.append(nodora_toitsu)
+            # print("nodora_toitsu", nodora_toitsu)
+            rest_depth -= 2
 
         # change already have toitsu
         while len(addable_dora_toitsu_candidates) > 0\
@@ -135,6 +209,9 @@ class Dfs():
         for new_toitsu_id in new_toitsu_ids:
             max_combination.append((new_toitsu_id, new_toitsu_id))
         
+        if len(max_combination) < 7:
+            print(max_combination, rest_depth, depth)
+
         return tuple(sorted(max_combination))
 
     
@@ -148,8 +225,10 @@ class Dfs():
             # print("finish because current_shanten - depth > 1.", current_shanten,  depth)
             return mpsz_combinations
         
-        changes = self.create_change(depth)
+        changes = self.create_change(depth, sum(tehai))
+
         
+        # print("changes",len(changes))
         manzu = tehai[0:9]
         pinzu = tehai[9:18]
         souzu = tehai[18:27]
@@ -158,16 +237,17 @@ class Dfs():
         pinzu_sum = sum(pinzu)
         souzu_sum = sum(souzu)
         ji_sum = sum(ji)
-    
+
         datas = {
-            MANZU:{"num":manzu,"sum":manzu_sum},
-            PINZU:{"num":pinzu,"sum":pinzu_sum},
-            SOUZU:{"num":souzu,"sum":souzu_sum},
-            JI:{"num":ji,"sum":ji_sum},
+            Syu.Manzu:{"num":manzu,"sum":manzu_sum},
+            Syu.Pinzu:{"num":pinzu,"sum":pinzu_sum},
+            Syu.Souzu:{"num":souzu,"sum":souzu_sum},
+            Syu.Ji:{"num":ji,"sum":ji_sum},
         }
         
         for change in changes:
-            for mpsz in [MANZU, PINZU, SOUZU, JI]:
+
+            for mpsz in [Syu.Manzu, Syu.Pinzu, Syu.Souzu, Syu.Ji]:
                 self.extract(
                     mpsz_combinations,
                     self.changed_buffer_with_head,
@@ -176,7 +256,7 @@ class Dfs():
                     datas,
                     mpsz,
                 )
-
+        
         return sorted(mpsz_combinations)
 
 
@@ -190,18 +270,18 @@ class Dfs():
             datas,
             target
         ):
-        
+
         head_candidate = None
         mentsu_candidates = []
-        for mpsj in [MANZU, PINZU, SOUZU, JI]:
+        for mpsj in [Syu.Manzu, Syu.Pinzu, Syu.Souzu, Syu.Ji]:
             num = datas[mpsj]["num"]
             num_sum = datas[mpsj]["sum"]
-            syu_change = change[mpsj]
+            syu_change = change[mpsj.value]
 
             if target == mpsj:
                 if syu_change not in changed_buffer_with_head[mpsj]:
                     # create cache
-                    if mpsj == JI:
+                    if mpsj == Syu.Ji:
                         head_combinations = self.get_with_head_combination_ji(num, num_sum, syu_change, mpsj)
                     else:
                         head_combinations = self.get_with_head_combination(num, num_sum, syu_change, mpsj)
@@ -210,7 +290,7 @@ class Dfs():
             else:
                 if syu_change not in changed_buffer_nohead[mpsj]:
                     # create cache
-                    if mpsj == JI:
+                    if mpsj == Syu.Ji:
                         combination = self.get_combination_ji(num, num_sum, syu_change, mpsj)
                     else:
                         combination = self.get_combination(num, num_sum, syu_change, mpsj)
@@ -219,22 +299,25 @@ class Dfs():
                 mentsu_candidates.append(changed_buffer_nohead[mpsj][syu_change])
         
         if head_candidate is None:
-            print("head_candidate is none")
             return
         
         if any([c is None for c in mentsu_candidates]):
             return
 
-        have_mentsu_candidates = [c for c in mentsu_candidates if len(c) > 0]
         change_dist_sum = sum([sum([abs(sc) for sc in syu_change]) for syu_change in change])
-        added = tuple([c[1] for c in change])
 
         for head in head_candidate:
             head_type_candidates = head_candidate[head]
             
-            for c in itertools.product(head_type_candidates, *have_mentsu_candidates):
+            targets = []
+            if len(head_type_candidates) > 0:
+                targets.append(head_type_candidates)
+            for i in range(len(mentsu_candidates)):
+                if len(mentsu_candidates[i]) > 0:
+                    targets.append(mentsu_candidates[i])
+            
+            for c in itertools.product(*targets):
                 flatten = tuple(sorted(itertools.chain.from_iterable(c)))
-                
                 mpsz_combinations.add(((head, flatten), change_dist_sum))
 
 
@@ -273,53 +356,63 @@ class Dfs():
 
     def _get_with_head_combination(self, tehai, tehai_sum, change, cut_func, pai_syu):
         if (tehai_sum + sum(change)) % 3 != 2:
-            return []
+            return None
         
         mentsu_num = ((tehai_sum + sum(change)) - 2) // 3
-        
         result = {}
-        
+
+        if mentsu_num == 0:
+            # search only head pattern
+            for head in range(len(tehai)):
+                result_head = head + 9*pai_syu.value
+                if tehai[head] + change[1] == 2:
+                    result[result_head] = []
+            return result
+
         for head in range(len(tehai)):
-            result_head = head + 9*pai_syu
-            
-            if tehai[head] >= 2:
+            result_head = head + 9*pai_syu.value
+
+            if tehai[head] >= 2 and tehai[head] + change[1] <= 4:
                 tehai[head] -= 2
                 changed_tehais = self.apply_change(tehai, change)
                 # print(f"head:{head}, change:{change}, changed_tehais len:{len(changed_tehais)}")
                 for changed_tehai in changed_tehais:
                     combinations = cut_func(changed_tehai, mentsu_num, pai_syu)
+                    
                     for combination in combinations:
-                        if head not in result:
-                            result[result_head] = []
-                        result[result_head].append(combination)
-                
-                if mentsu_num == 0:
-                    result[result_head] = []
-                    result[result_head].append([])
+                        same_head_num = sum([len([m for m in mentsu if m == result_head]) for mentsu in combination])
+                        if same_head_num <= 2:
+                            if result_head not in result:
+                                result[result_head] = []
+                            result[result_head].append(combination)
                 tehai[head] += 2
             
-            elif tehai[head] == 1 and change[1] >= 1:
+            if tehai[head] >= 1 and change[1] >= 1 and  tehai[head] + change[1] <= 4:
                 new_change = (change[0], change[1]-1)
                 tehai[head] -= 1
                 changed_tehais = self.apply_change(tehai, new_change)
                 for changed_tehai in changed_tehais:
                     combinations = cut_func(changed_tehai, mentsu_num, pai_syu)
                     for combination in combinations:
-                        if head not in result:
-                            result[result_head] = []
-                        result[result_head].append(combination)
+                        same_head_num = sum([len([m for m in mentsu if m == result_head]) for mentsu in combination])
+                        if same_head_num <= 2:
+                            if result_head not in result:
+                                result[result_head] = []
+                            result[result_head].append(combination)
                 tehai[head] += 1
             
-            elif tehai[head] == 0 and change[1] >= 2:
+            if tehai[head] == 0 and change[1] >= 2 and tehai[head] + change[1] <= 4:
                 new_change = (change[0], change[1]-2)
-                
                 changed_tehais = self.apply_change(tehai, new_change)
                 for changed_tehai in changed_tehais:
                     combinations = cut_func(changed_tehai, mentsu_num, pai_syu)
                     for combination in combinations:
-                        if head not in result:
-                            result[result_head] = []
-                        result[result_head].append(combination)
+                        same_head_num = sum([len([m for m in mentsu if m == result_head]) for mentsu in combination])
+                        if same_head_num <= 2:
+                            if result_head not in result:
+                                result[result_head] = []
+                            result[result_head].append(combination)
+                
                 
         return result
 
@@ -363,12 +456,6 @@ class Dfs():
         return list(result.values())
 
 
-    MULTIPLES = list([5**i for i in range(9)])
-    def _get_key(self, tehai):
-        key = 0
-        for i, n in enumerate(tehai):
-            key += n * self.MULTIPLES[i]
-        return key
 
     def get_key(self, tehai):
         return (tehai[0] << 24)\
@@ -416,7 +503,7 @@ class Dfs():
                     record_tehai[i] -= 1
                     record_tehai[i+1] -= 1
                     record_tehai[i+2] -= 1
-                    history.append(tuple([p + 9*pai_syu for p in (i,i+1,i+2)]))
+                    history.append(tuple([p + 9*pai_syu.value for p in (i,i+1,i+2)]))
                     queue.append((copy.copy(record_tehai), current_depth+1, copy.copy(history), i))
                     history.pop()
                     record_tehai[i] += 1
@@ -427,7 +514,7 @@ class Dfs():
             for i in range(start_index, 9):
                 if record_tehai[i] >= 3:
                     record_tehai[i] -= 3
-                    history.append(tuple([p + 9*pai_syu for p in (i,i,i)]))
+                    history.append(tuple([p + 9*pai_syu.value for p in (i,i,i)]))
                     queue.append((copy.copy(record_tehai), current_depth+1, copy.copy(history), i))
                     history.pop()
                     record_tehai[i] += 3
@@ -451,7 +538,7 @@ class Dfs():
             for i in range(start_index, 7):
                 if record_tehai[i] >= 3:
                     record_tehai[i] -= 3
-                    history.append(tuple([p + 9*pai_syu for p in (i,i,i)]))
+                    history.append(tuple([p + 9*pai_syu.value for p in (i,i,i)]))
                     queue.append((copy.copy(record_tehai), current_depth+1, copy.copy(history), i))
                     history.pop()
                     record_tehai[i] += 3
@@ -476,7 +563,7 @@ class Dfs():
             hora = {
                 "fu":30,
                 "fan":100,
-                "yakus":["kokushimuso",100],
+                "yakus":[["kokushimuso",100]],
                 "points":48000,
                 "oya_payment":0,
                 "ko_payment":16000,
@@ -485,32 +572,33 @@ class Dfs():
             hora = {
                 "fu":30,
                 "fan":100,
-                "yakus":["kokushimuso",100],
+                "yakus":[["kokushimuso",100]],
                 "points":32000,
                 "oya_payment":16000,
                 "ko_payment":8000,
             }
 
-        return [(hora, shanten_kokushi+1)]
+        kokushi_tenpai_nums = [
+            1,0,0,0,0,0,0,0,1,
+            1,0,0,0,0,0,0,0,1,
+            1,0,0,0,0,0,0,0,1,
+            1,1,1,1,1,1,1,
+        ]
+        diff = [kokushi_tenpai_nums[i]-tehai[i] for i in range(34)]
+
+        return [DfsResult(DfsResultType.Kokushimuso, kokushi_tenpai_nums, hora, diff)]
 
     def dfs_with_score_chitoitsu(
         self,
-        tehai:List[int], 
-        furos:List[Furo], 
+        tehai:List[int],
+        furos:List[Furo],
         depth:int, 
-        reach:bool,
         shanten_chitoitsu:int,
         oya:bool=False, 
         bakaze:str="E", 
         jikaze:str="S", 
         doras:List[Pai]=None, 
         uradoras:List[Pai]=None,
-        double_reach:bool=False,
-        ippatsu:bool=False,
-        rinshan:bool=False,
-        haitei:bool=False,
-        first_turn:bool=False,
-        chankan:bool=False,
         num_akadoras:int=0,
     ):
         if doras is None:
@@ -520,16 +608,16 @@ class Dfs():
         
         horas = []
         
-        
         results = self.dfs_chitoitsu(tehai, depth, doras, shanten_chitoitsu)
-    
-        tehais = []
+        
         
         for result in results:
-            (toitsus, target_depth) = result
+            tehais = []
+            toitsus = result
+            
             for i, toitsu in enumerate(toitsus):
                 tehais.append(Pai.from_id(toitsu[0]))
-                tehais.append(Pai.from_id(toitsu[0]))
+                tehais.append(Pai.from_id(toitsu[1]))
 
             if len(tehais) > 0:
                 taken = tehais.pop()
@@ -546,16 +634,14 @@ class Dfs():
                 jikaze=jikaze,
                 doras=doras,
                 uradoras=uradoras,
-                reach=reach,
-                double_reach=double_reach,
-                ippatsu=ippatsu,
-                rinshan=rinshan,
-                haitei=haitei,
-                first_turn=first_turn,
-                chankan=chankan,
                 num_akadoras=num_akadoras,
                 )
-            horas.append((hora, target_depth))
+            nums = [0] * 34
+            nums[taken.id] += 1
+            for t in tehais:
+                nums[t.id] += 1
+            diff = [nums[i] - tehai[i] for i in range(34)]
+            horas.append(DfsResult(DfsResultType.Chitoitsu, toitsus, hora, diff))
             
         return horas
 
@@ -564,19 +650,12 @@ class Dfs():
         tehai:List[int], 
         furos:List[Furo], 
         depth:int, 
-        reach:bool,
         shanten_normal:int,
-        oya:bool=False, 
+        oya:bool=False,
         bakaze:str="E", 
         jikaze:str="S", 
         doras:List[Pai]=None, 
         uradoras:List[Pai]=None,
-        double_reach:bool=False,
-        ippatsu:bool=False,
-        rinshan:bool=False,
-        haitei:bool=False,
-        first_turn:bool=False,
-        chankan:bool=False,
         num_akadoras:int=0,
     ):
         if doras is None:
@@ -588,18 +667,29 @@ class Dfs():
         
         # union to min distance
         unioned_results = {}
+        
         for result in results:
             result_tehai = result[0]
             distance = result[1]
+            
             if result_tehai in unioned_results:
                 unioned_results[result_tehai] = min(distance, unioned_results[result_tehai])
             else:
                 unioned_results[result_tehai] = distance
         
         horas = []
+        dahai_horas = {}
         for result_tehai, distance in unioned_results.items():
             (head, mentsus) = result_tehai
             # try to use cache
+            changed_tehai_num = [0] * 34
+            changed_tehai_num[head] += 2
+            for mentsu in mentsus:
+                for pai in mentsu:
+                    changed_tehai_num[pai] += 1
+
+            diff = [changed_tehai_num[i] - num for i,num in enumerate(tehai)]
+            taken_candidate_ids = [i for (i,p) in enumerate(diff) if p > 0]
             hora_key = (
                 result_tehai, 
                 tuple(sorted(furos)),
@@ -608,31 +698,18 @@ class Dfs():
                 jikaze,
                 tuple(sorted(doras)),
                 tuple(sorted(uradoras)),
-                reach,
-                ippatsu,
-                rinshan,
-                haitei,
-                first_turn,
-                chankan,
-                num_akadoras
+                num_akadoras,
+                tuple(sorted(taken_candidate_ids)),
                 )
             if hora_key in self.hora_cash:
-                max_result = self.hora_cash[hora_key]
-                horas.append((result_tehai, furos, max_result))
+                (max_result, diff) = self.hora_cash[hora_key]
+                horas.append(DfsResult(DfsResultType.Normal, result_tehai, max_result, diff))
+                # print("hora cache found")
                 continue
 
-
-            changed_tehai_num = [0] * 34
-            changed_tehai_num[head] += 2
-            for mentsu in mentsus:
-                for pai in mentsu:
-                    changed_tehai_num[pai] += 1
-
-            diff = [changed_tehai_num[i] - num for i,num in enumerate(tehai)]
+            if len(taken_candidate_ids) == 0:
+                taken_candidate_ids = [i for (i,p) in enumerate(changed_tehai_num) if p > 0]
             
-            taken_candidate_ids = [i for (i,p) in enumerate(diff) if p > 0]
-                
-            # tehais.append()
             changed_tehais = []
             for i, value in enumerate(changed_tehai_num):
                 for _ in range(value):
@@ -640,7 +717,6 @@ class Dfs():
 
             taken_changed_results = []
             for taken_id in taken_candidate_ids:
-            
                 horra_tehai = copy.copy(changed_tehais)
                 taken_index = horra_tehai.index(Pai.from_id(taken_id))
                 taken = horra_tehai.pop(taken_index)
@@ -656,20 +732,14 @@ class Dfs():
                     jikaze=jikaze,
                     doras=doras,
                     uradoras=uradoras,
-                    reach=reach,
-                    double_reach=double_reach,
-                    ippatsu=ippatsu,
-                    rinshan=rinshan,
-                    haitei=haitei,
-                    first_turn=first_turn,
-                    chankan=chankan,
                     num_akadoras=num_akadoras,
                     )
                 # print(hora)
                 taken_changed_results.append(hora)
-            max_result = max(taken_changed_results, key= lambda x:{x["points"]*1000+x["fan"]*1000+x["fu"]})
-            self.hora_cash[hora_key] = max_result
-            horas.append((result_tehai, furos, max_result))
+        
+            max_result = max(taken_changed_results, key= lambda x:{x["points"]*1000+x["fan"]*1000+x["fu"]})    
+            self.hora_cash[hora_key] = (max_result, diff)
+            horas.append(DfsResult(DfsResultType.Normal, result_tehai, max_result, diff))
             
             # print(result_tehai, max_result)
 
@@ -678,59 +748,110 @@ class Dfs():
 
 
 
+def compare():
+    import datetime
+
+    depth = 3
+
+    dfs = Dfs()
+    print("start dfs a")
+    start = datetime.datetime.now()
+
+    manzu = [0,0,0,0,0,0,0,0,0]
+    pinzu = [0,0,0,0,0,0,0,0,0]
+    souzu = [0,0,0,0,0,0,0,0,0]
+    ji = [1,0,0,0,0,3,1]
+    tehai_a = manzu + pinzu + souzu + ji
+    
+    depth = 3
+    furo_num = (14-sum(tehai_a))//3
+
+    from mjaigym.board.function.furo import Furo
+    w_pai = Pai.from_str("W")
+    pai_3m =Pai.from_str("3m")
+    furos = [
+        Furo({"type":"pon", "actor":0, "target":2, "taken":w_pai, "consumed":[w_pai,w_pai]}),
+        Furo({"type":"pon", "actor":0, "target":2, "taken":w_pai, "consumed":[w_pai,w_pai]}),
+        Furo({"type":"pon", "actor":0, "target":2, "taken":pai_3m, "consumed":[pai_3m,pai_3m]}),
+    ]
+    assert 13 <= sum(tehai_a) + 3 * len(furos) <= 14
+
+    shanten_normal, shanten_kokushi, shanten_chitoitsu = shanten.get_shanten_all(tehai_a, len(furos))
+    result_a = dfs.dfs_with_score_normal(tehai_a, furos, depth, shanten_normal=shanten_normal)
+
+    # a_changes = set()
+    # for ra in result_a:
+    #     a_changes.add(tuple(ra[0]))
+    print("start dfs b")
+    dfs = Dfs()
+    manzu = [0,0,0,0,0,0,0,0,0]
+    pinzu = [0,0,0,0,0,0,0,0,0]
+    souzu = [0,0,0,0,0,0,0,0,0]
+    ji = [1,0,0,0,0,1,3]
+    tehai_b = manzu + pinzu + souzu + ji
+    shanten_normal, shanten_kokushi, shanten_chitoitsu = shanten.get_shanten_all(tehai_b, len(furos))
+    result_b = dfs.dfs_with_score_normal(tehai_b, furos, depth, shanten_normal=shanten_normal)
+
+    result_a = sorted(result_a, key=lambda x:x[0])
+    result_b = sorted(result_b, key=lambda x:x[0])
+
+    print(len(result_a))
+    print(len(result_b))
+
+    for i in range(max(len(result_a),len(result_b))):
+        if i >= len(result_b):
+            print(result_a[i][0])
+        else:
+            print(result_a[i][0], result_b[i][0])
+
+    
 
 
 def main():
     import datetime
-    # """
-    manzu = [0,0,0,3,0,0,0,0,0]
-    pinzu = [0,0,0,0,0,0,0,0,0]
-    souzu = [0,1,1,1,0,0,0,0,0]
-    ji = [1,0,0,2,0,0,2]
+    """
+    manzu = [1,0,0,1,0,0,0,0,0]
+    pinzu = [0,0,0,0,0,2,2,0,0]
+    souzu = [0,0,0,2,0,0,2,0,0]
+    ji = [0,3,0,0,0,0,0]
+    """
+    manzu = [1,0,0,0,0,0,0,0,1]
+    pinzu = [1,0,0,0,0,0,0,0,1]
+    souzu = [1,0,3,0,0,0,0,0,1]
+    ji = [1,1,1,1,0,0,1]
     tehai = manzu + pinzu + souzu + ji
-    # """
-    """
-    tehai = [
-        0,4,4,4,2,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,
-    ]
-    """
-    """
-    tehai = [
-        0,2,0,2,0,0,2,0,0,
-        0,0,0,0,0,0,2,0,1,
-        0,0,0,2,0,0,0,0,0,
-        0,0,2,0,0,0,1,
-    ]
-    """
+
     
     depth = 3
     furo_num = (14-sum(tehai))//3
 
     from mjaigym.board.function.furo import Furo
     w_pai = Pai.from_str("W")
+    pai_3m =Pai.from_str("3m")
     furos = [
-        Furo({"type":"pon", "actor":0, "target":2, "taken":w_pai, "consumed":[w_pai,w_pai]}),
+        # Furo({"type":"pon", "actor":0, "target":2, "taken":w_pai, "consumed":[w_pai,w_pai]}),
+        # Furo({"type":"pon", "actor":0, "target":2, "taken":w_pai, "consumed":[w_pai,w_pai]}),
+        # Furo({"type":"pon", "actor":0, "target":2, "taken":pai_3m, "consumed":[pai_3m,pai_3m]}),
     ]
-    
+    assert 13 <= sum(tehai) + 3 * len(furos) <= 14
 
     dfs = Dfs()
-    print(shanten.get_shanten(tehai, 0))
+    shanten_normal, shanten_kokushi, shanten_chitoitsu = shanten.get_shanten_all(tehai, len(furos))
     start = datetime.datetime.now()
-    result = dfs.dfs_with_score_normal(tehai, furos, depth, reach=False)
+    for i in range(10):
+        result = dfs.dfs_with_score_normal(tehai, furos, depth, oya=True, shanten_normal=shanten_normal)
+        result = dfs.dfs_with_score_chitoitsu(tehai, furos, depth, doras=Pai.from_list(["1m","3m"]), shanten_chitoitsu=shanten_chitoitsu)
+        result = dfs.dfs_with_score_kokushi(tehai, furos, depth, oya=True, shanten_kokushi=shanten_kokushi)
+    
     # result = dfs.dfs(tehai, furo_num, depth)
     end = datetime.datetime.now()
     
+    print(tehai)
     for r in result:
-        # print(r)
+        print(r)
         pass
     print(len(result))
     print(end - start)
-
-
-    
 
 
 

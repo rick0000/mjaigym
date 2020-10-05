@@ -5,7 +5,7 @@ from collections import deque
 import joblib
 
 from mjaigym.board.function.efficient_dfs import Dfs
-
+from mjaigym.board.function.rs_shanten_analysis import RsShantenAnalysis
 
 
 def create_all_patterns():
@@ -64,7 +64,6 @@ def build_change_cache(depth=3):
                 
                 cache[key][change] = mentsu_patterns
             
-            
             # print(datetime.datetime.now() ,pattern, change, len(mentsu_patterns))
             # mentsus.extend()
                 
@@ -109,16 +108,23 @@ def load_test():
 
 def main():
     dfs = Dfs()
+    shanten_analysis = RsShantenAnalysis()
     tehai = [
-        0,2,0,2,2,0,2,0,0,
+        0,2,2,2,2,0,0,0,0,
         0,0,2,0,0,2,0,0,0,
         0,0,1,0,0,1,0,0,0,
         0,0,0,0,0,0,0,
     ]
-    result = dfs.dfs(tehai, 0,3)
+    
+    shanten_noraml, _, shanten_chitoitsu = shanten_analysis.calc_all_shanten(tehai, 0)
+    result = dfs.dfs_with_score_chitoitsu(tehai, [], 3, shanten_chitoitsu)
     print(len(result))
+    print(result)
 
-# build_change_cache()
+    result = dfs.dfs_with_score_normal(tehai, [], 2, shanten_chitoitsu)
+    print(len(result))
+    print(result)
+
 
 if __name__ == "__main__":
     main()
