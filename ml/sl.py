@@ -208,7 +208,7 @@ if __name__ == "__main__":
             test_dir,
             log_dir=log_dir,
             session_name=session_name,
-            use_multiprocess=False,
+            use_multiprocess=True,
             udpate_interbal=64,
             batch_size=model_config.batch_size,
             evaluate_per_update=10

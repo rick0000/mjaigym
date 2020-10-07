@@ -28,7 +28,8 @@ class HoraRs():
         rinshan,
         haitei,
         first_turn,
-        chankan
+        chankan,
+        num_akadoras=None
     ):
         self.tehais = copy.copy(tehais)
         self.furos = furos
@@ -57,9 +58,12 @@ class HoraRs():
 
         self.num_doras = self.count_doras(self.doras)
         self.num_uradoras = self.count_doras(self.uradoras)
-        self.num_akadoras = len([p for p in self.all_pais if p.is_red])
+        if num_akadoras is None:
+            self.num_akadoras = len([p for p in self.all_pais if p.is_red])
+        else:
+            self.num_akadoras = num_akadoras
 
-        show = True
+        show = False
         try:
             result = shanten.get_hora(
                 tehais,

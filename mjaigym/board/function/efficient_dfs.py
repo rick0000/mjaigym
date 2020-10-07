@@ -12,6 +12,7 @@ from mjaigym import shanten
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.function.furo import Furo
 from mjaigym.board.function.dfs_result import DfsResult, DfsResultType
+from mjaigym.board.function.hora_rs import HoraRs
 
 CHANGE_CACHE = "change_cache.pkl"
 
@@ -713,14 +714,17 @@ class Dfs():
             changed_tehais = []
             for i, value in enumerate(changed_tehai_num):
                 for _ in range(value):
-                    changed_tehais.append(Pai.from_id(i))
+                    # changed_tehais.append(Pai.from_id(i))
+                    changed_tehais.append(Pai.id_to_str(i, False))
 
             taken_changed_results = []
             for taken_id in taken_candidate_ids:
                 horra_tehai = copy.copy(changed_tehais)
-                taken_index = horra_tehai.index(Pai.from_id(taken_id))
+                # taken_index = horra_tehai.index(Pai.from_id(taken_id))
+                taken_index = horra_tehai.index(Pai.id_to_str(taken_id, False))
                 taken = horra_tehai.pop(taken_index)
 
+                """
                 # print(horra_tehai, taken, taken_id)
                 hora = Candidate.from_already_spliteds(
                     head=head, # 9
@@ -734,10 +738,31 @@ class Dfs():
                     uradoras=uradoras,
                     num_akadoras=num_akadoras,
                     )
+                """
+                hora = HoraRs(
+                    tehais=horra_tehai,
+                    furos=furos,
+                    taken=taken,
+                    hora_type='tsumo',
+                    oya=oya,
+                    bakaze=bakaze,
+                    jikaze=jikaze,
+                    doras=doras,
+                    uradoras=uradoras,
+                    reach=len(furos)==0,
+                    double_reach=False,
+                    ippatsu=False,
+                    rinshan=False,
+                    haitei=False,
+                    first_turn=False,
+                    chankan=False,
+                    num_akadoras=num_akadoras
+                )
                 # print(hora)
                 taken_changed_results.append(hora)
         
-            max_result = max(taken_changed_results, key= lambda x:{x["points"]*1000+x["fan"]*1000+x["fu"]})    
+            # max_result = max(taken_changed_results, key= lambda x:{x["points"]*1000+x["fan"]*1000+x["fu"]})    
+            max_result = max(taken_changed_results, key= lambda x:{x.points*1000+x.fan*1000+x.fu})    
             self.hora_cash[hora_key] = (max_result, diff)
             horas.append(DfsResult(DfsResultType.Normal, result_tehai, max_result, diff))
             
@@ -809,7 +834,7 @@ def compare():
 
 def main():
     import datetime
-    """
+    
     manzu = [1,0,0,1,0,0,0,0,0]
     pinzu = [0,0,0,0,0,2,2,0,0]
     souzu = [0,0,0,2,0,0,2,0,0]
@@ -819,6 +844,7 @@ def main():
     pinzu = [1,0,0,0,0,0,0,0,1]
     souzu = [1,0,3,0,0,0,0,0,1]
     ji = [1,1,1,1,0,0,1]
+    """
     tehai = manzu + pinzu + souzu + ji
 
     
@@ -838,10 +864,10 @@ def main():
     dfs = Dfs()
     shanten_normal, shanten_kokushi, shanten_chitoitsu = shanten.get_shanten_all(tehai, len(furos))
     start = datetime.datetime.now()
-    for i in range(10):
+    for i in range(400):
         result = dfs.dfs_with_score_normal(tehai, furos, depth, oya=True, shanten_normal=shanten_normal)
-        result = dfs.dfs_with_score_chitoitsu(tehai, furos, depth, doras=Pai.from_list(["1m","3m"]), shanten_chitoitsu=shanten_chitoitsu)
-        result = dfs.dfs_with_score_kokushi(tehai, furos, depth, oya=True, shanten_kokushi=shanten_kokushi)
+        # result = dfs.dfs_with_score_chitoitsu(tehai, furos, depth, doras=Pai.from_list(["1m","3m"]), shanten_chitoitsu=shanten_chitoitsu)
+        # result = dfs.dfs_with_score_kokushi(tehai, furos, depth, oya=True, shanten_kokushi=shanten_kokushi)
     
     # result = dfs.dfs(tehai, furo_num, depth)
     end = datetime.datetime.now()
