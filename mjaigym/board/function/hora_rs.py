@@ -53,6 +53,11 @@ class HoraRs():
         furos_flatten = []
         for f in self.furos:
             furos_flatten.extend(f.pais)
+
+        furo_input = []
+        for f in self.furos:
+            furo_input.append(f.to_rs_hora_furo())
+            
         
         self.all_pais = self.free_pais + furos_flatten
 
@@ -63,17 +68,21 @@ class HoraRs():
         else:
             self.num_akadoras = num_akadoras
 
+        doras_str = [d.str for d in doras]
+        uradoras_str = [d.str for d in uradoras]
         show = False
+        tehai_str = [t.str for t in tehais]
+        taken_str = taken.str
         try:
             result = shanten.get_hora(
-                tehais,
-                furos,
-                taken,
+                tehai_str,
+                furo_input,
+                taken_str,
                 oya,
                 hora_type,
                 first_turn,
-                doras,
-                uradoras,
+                doras_str,
+                uradoras_str,
                 reach,
                 double_reach,
                 ippatsu,

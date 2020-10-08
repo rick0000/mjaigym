@@ -307,12 +307,16 @@ class DahaiTrainableAgent(InnerAgent):
         self.model_config = model_config
         
     def update(self, experiences:typing.List[Experience]):
+        
         state_action_rewards = []
         for experience in experiences:
             for i in range(4):
                 player_state = experience.state[i]
-                if player_state.dahai_observation is not None and \
-                    experience.action["type"] == MjMove.dahai.value:
+                
+
+                if player_state.dahai_observation is not None\
+                    and not experience.board_state.reach[i]\
+                    and experience.action["type"] == MjMove.dahai.value:
                     
                     label = Pai.str_to_id(experience.action["pai"])
                     state_action_rewards.append(tuple((
@@ -320,12 +324,19 @@ class DahaiTrainableAgent(InnerAgent):
                         label,
                         experience.reward,
                     )))
-        if len(state_action_rewards) == 0:
-            lgs.logger_main.warn(f"state_action_rewards len is 0, end dahai update")
-
+        
+        # print("dahai update s_a_r",len(state_action_rewards))
+        
         if not self.initialized:
             self.initialize(state_action_rewards[0][0])
-        
+
+
+        loss, acc = self.model.update(state_action_rewards)
+
+
+        """
+        if len(state_action_rewards) == 0:
+            lgs.logger_main.warn(f"state_action_rewards len is 0, end dahai update")
         if self.update_buffer is None:
             capacity = len(state_action_rewards)*10
             capacity = min(capacity, 100_000)
@@ -353,6 +364,7 @@ class DahaiTrainableAgent(InnerAgent):
         
         sampled_state_action_rewards.clear()
         state_action_rewards.clear()
+        """
         return loss, acc
 
     def evaluate(self, experiences:typing.List[Experience]):
@@ -361,8 +373,11 @@ class DahaiTrainableAgent(InnerAgent):
         for experience in experiences:
             for i in range(4):
                 player_state = experience.state[i]
-                if player_state.dahai_observation is not None and \
-                    experience.action["type"] == MjMove.dahai.value:
+                
+                
+                if player_state.dahai_observation is not None\
+                    and not experience.board_state.reach[i]\
+                    and experience.action["type"] == MjMove.dahai.value:
                     
                     label = Pai.str_to_id(experience.action["pai"])
                     state_action_rewards.append(tuple((

@@ -89,4 +89,4 @@ YAKU_CHANNEL_CONVERT_LIST = [
     YakuName.Ryanpeko,
     YakuName.Chiniso,
 ]
-YAKU_CHANNEL_MAP = dict(zip([v.value for v in YAKU_CHANNEL_CONVERT_LIST],range(len(YAKU_CHANNEL_CONVERT_LIST))))
+YAKU_CHANNEL_MAP = dict(zip([v.value for v in YAKU_CHANNEL_CONVERT_LIST], range(len(YAKU_CHANNEL_CONVERT_LIST))))

@@ -115,15 +115,17 @@ def main():
         0,0,1,0,0,1,0,0,0,
         0,0,0,0,0,0,0,
     ]
-    
-    shanten_noraml, _, shanten_chitoitsu = shanten_analysis.calc_all_shanten(tehai, 0)
-    result = dfs.dfs_with_score_chitoitsu(tehai, [], 3, shanten_chitoitsu)
-    print(len(result))
-    print(result)
+    tehai = [0, 2, 0, 1, 1, 1, 2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0]
 
-    result = dfs.dfs_with_score_normal(tehai, [], 2, shanten_chitoitsu)
+    shanten_noraml, _, shanten_chitoitsu = shanten_analysis.calc_all_shanten(tehai, 0)
+    # result = dfs.dfs_with_score_chitoitsu(tehai, [], 3, shanten_chitoitsu)
+    # print(len(result))
+    # print(result)
+    for i in range(1):
+        result = dfs.dfs_with_score_normal(tehai, [], 2, shanten_noraml)
     print(len(result))
-    print(result)
+    for r in result:
+        print(r)
 
 
 if __name__ == "__main__":

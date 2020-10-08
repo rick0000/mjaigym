@@ -55,6 +55,20 @@ class Furo():
             'pais':self.pais,
             'visibility':visibility,
             })
+    
+    def to_rs_hora_furo(self):
+        if self.type == MjMove.ankan.value:
+            return {
+                "type":self.type,
+                "consumed":[c.str for c in self.consumed],
+            }
+        else:
+            return {
+                "type":self.type,
+                "taken":self.taken.str,
+                "consumed":[c.str for c in self.consumed],
+            }
+
 
     def __str__(self):
         if self.type == MjMove.ankan.value:

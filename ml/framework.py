@@ -85,6 +85,7 @@ class Experience:
     state:typing.Dict[int, SceneObservation] # key is 0~3, value is observation for player0~3
     action:typing.Dict
     reward:float
+    board_state:BoardState
 
 
 """ Observers

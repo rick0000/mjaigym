@@ -17,10 +17,22 @@ class DfsResult:
         return dahai_id in self.dahaiable_ids
     
     def get_point(self):
-        return self.point_info["points"]
+        return self.point_info.points
 
     def get_yakus(self):
-        return [y[0] for y in self.point_info["yakus"]]
+        return [y[0] for y in self.point_info.yakus]
+
+    def valid(self):
+        try:
+            return len([y for y in self.point_info.yakus if y[0] not in ["dora", "akadora", "uradora"]]) > 0
+        except:
+            import pdb; pdb.set_trace(); import time; time.sleep(1)
+            print(self.point_info)
+            False
+
+    def distance(self):
+        return sum([d for d in self.diff if d > 0])
 
     def __repr__(self):
         return f"{self.combination}, {self.point_info}, {self.diff}"
+

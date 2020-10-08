@@ -128,11 +128,13 @@ class SlTrainer():
                 states = deque()
                 actions = deque()
                 rewards = deque()
+                board_states = deque()
                 for action in kyoku.kyoku_mjsons:
                     next_state, reward, done, info = env.step(action)
                     states.append(state)
                     actions.append(action)
                     rewards.append(reward)
+                    board_states.append(info["board_state"])
                     state = next_state
 
                 if len(rewards) == 0:
@@ -143,9 +145,11 @@ class SlTrainer():
                 one_kyoku_length = len(kyoku.kyoku_mjsons)
                 reversed_discount_rewards = [last_reward * math.pow(self.reward_discount_rate, i) for i in range(one_kyoku_length)]
                 discount_rewards = list(reversed(reversed_discount_rewards))
-                reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i])  for i in range(one_kyoku_length)]
+                reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i], board_states[i])  for i in range(one_kyoku_length)]
                 one_game_experience.extend(reward_dicided_experience)
 
+            # d = [a for a in one_game_experience if a.action["type"]=="dahai"]
+            # print("one game dahai len",len(d))
             del env
             return one_game_experience
         except KeyboardInterrupt:
@@ -188,7 +192,6 @@ class SlTrainer():
             pickle.dump(use_results, f)
 
         return use_results
-
 
 
 if __name__ == "__main__":

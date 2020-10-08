@@ -1,4 +1,5 @@
 import os
+import sys
 import gc
 from abc import ABCMeta, abstractmethod
 from typing import List
@@ -117,21 +118,30 @@ class Head34SlModel(Model):
         return float(total_loss / batch_num), float(acc)
 
     def update(self, experiences):
-        batch_num = len(experiences) // self.batch_size
+        sampled_experiences = random.sample(
+                experiences, 
+                min(self.batch_size*10, len(experiences))
+            )
+
+        batch_num = len(sampled_experiences) // self.batch_size
         if batch_num == 0:
             return 0, 0
         
         total_loss = 0.0
         correct = 0
         total = 0
-        for i in range(batch_num):
-            target_experiences = experiences[i*self.batch_size:(i+1)*self.batch_size]
-            states = [e[0] for e in target_experiences]
-            actions = [e[1] for e in target_experiences]
 
+        states = np.array([e[0] for e in sampled_experiences])
+        actions = np.array([e[1] for e in sampled_experiences])
+        
+        # lgs.logger_main.info(f"start transfer states size:{sys.getsizeof(states)//(1024*1024)}MB")
+        all_inputs = torch.Tensor(states).float().to(DEVICE)
+        all_targets = torch.Tensor(actions).long().to(DEVICE)
+        # lgs.logger_main.info(f"start train {len(sampled_experiences)}records to {batch_num} minibatchs")
+        for i in range(batch_num):
+            inputs = all_inputs[i*self.batch_size:(i+1)*self.batch_size]
+            targets = all_targets[i*self.batch_size:(i+1)*self.batch_size]
             self.model.train()
-            inputs = torch.Tensor(states).float().to(DEVICE)
-            targets = torch.Tensor(actions).long().to(DEVICE)
             outputs = self.model(inputs)
             loss = self.criterion(outputs, targets)
             self.optimizer.zero_grad()
@@ -139,10 +149,9 @@ class Head34SlModel(Model):
             self.optimizer.step()
             _, predicted = torch.max(outputs.data, 1)
             correct += predicted.eq(targets.data).cpu().sum().detach()
-            total += len(states)
+            total += len(inputs)
             total_loss += loss.cpu().detach()
             
-            del states, actions, target_experiences, inputs, targets
         gc.collect()
 
         acc = 100.0 * correct / (total + EPS)

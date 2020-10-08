@@ -2,12 +2,14 @@ import copy
 import math
 from typing import List
 from dataclasses import dataclass
+from collections import namedtuple
 
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.function.mentsu import Mentsu
 from mjaigym.board.function.furo import Furo
 from mjaigym.board.function.shanten_analysis import ShantenAnalysis
 from mjaigym.board.function.mj_move import MjMove
+
 
 
 FUROTYPE_TO_MENTSU_TYPE = {
@@ -24,7 +26,7 @@ BASE_FU_MAP = {
     'kantsu':8,
 }
 
-
+HoraInfo = namedtuple("HoraInfo", "fu fan yakus points oya_payment ko_payment")
 
 GREEN_PAIS = ['2s','3s', '4s', '6s', '8s', 'F']
 CHUREN_NUMBERS = [1,1,1,2,3,4,5,6,7,8,9,9,9]
@@ -121,14 +123,22 @@ class Candidate():
         num_akadoras,
     ):
         if len(furos) > 0:
-            return {
-                "fu":0,
-                "fan":0,
-                "yakus":[],
-                "points":0,
-                "oya_payment":0,
-                "ko_payment":0,
-            }
+            return HoraInfo(
+                fu=0,
+                fan=0,
+                yakus=[],
+                points=0,
+                oya_payment=0,
+                ko_payment=0
+            )
+            # return {
+            #     "fu":0,
+            #     "fan":0,
+            #     "yakus":[],
+            #     "points":0,
+            #     "oya_payment":0,
+            #     "ko_payment":0,
+            # }
 
         all_pais = tehais
 
@@ -160,22 +170,38 @@ class Candidate():
         
         best_candidate = Candidate(hora_yaku_information, combination, 0)
         if best_candidate.valid:
-            return {
-                "fu":best_candidate.fu,
-                "fan":best_candidate.fan,
-                "yakus":best_candidate.yakus,
-                "points":best_candidate.points,
-                "oya_payment":best_candidate.oya_payment,
-                "ko_payment":best_candidate.ko_payment,
-            }
-        return {
-            "fu":0,
-            "fan":0,
-            "yakus":[],
-            "points":0,
-            "oya_payment":0,
-            "ko_payment":0,
-        }
+            return HoraInfo(
+                fu=best_candidate.fu,
+                fan=best_candidate.fan,
+                yakus=best_candidate.yakus,
+                points=best_candidate.points,
+                oya_payment=best_candidate.oya_payment,
+                ko_payment=best_candidate.ko_payment,
+            )
+            # return {
+            #     "fu":best_candidate.fu,
+            #     "fan":best_candidate.fan,
+            #     "yakus":best_candidate.yakus,
+            #     "points":best_candidate.points,
+            #     "oya_payment":best_candidate.oya_payment,
+            #     "ko_payment":best_candidate.ko_payment,
+            # }
+        return HoraInfo(
+                fu=0,
+                fan=0,
+                yakus=[],
+                points=0,
+                oya_payment=0,
+                ko_payment=0
+            )
+        # return {
+        #     "fu":0,
+        #     "fan":0,
+        #     "yakus":[],
+        #     "points":0,
+        #     "oya_payment":0,
+        #     "ko_payment":0,
+        # }
 
 
     @classmethod
@@ -249,23 +275,39 @@ class Candidate():
         if len(candidates) > 0:
             best_candidate = max(candidates, key=lambda x:(x.fan, x.points))
             if best_candidate.valid:
-                return {
-                    "fu":best_candidate.fu,
-                    "fan":best_candidate.fan,
-                    "yakus":best_candidate.yakus,
-                    "points":best_candidate.points,
-                    "oya_payment":best_candidate.oya_payment,
-                    "ko_payment":best_candidate.ko_payment,
-                }
-        return {
-            "fu":0,
-            "fan":0,
-            "yakus":[],
-            "points":0,
-            "oya_payment":0,
-            "ko_payment":0,
-        }
-        
+                return HoraInfo(
+                    fu=best_candidate.fu,
+                    fan=best_candidate.fan,
+                    yakus=best_candidate.yakus,
+                    points=best_candidate.points,
+                    oya_payment=best_candidate.oya_payment,
+                    ko_payment=best_candidate.ko_payment,
+                )
+                # return {
+                #     "fu":best_candidate.fu,
+                #     "fan":best_candidate.fan,
+                #     "yakus":best_candidate.yakus,
+                #     "points":best_candidate.points,
+                #     "oya_payment":best_candidate.oya_payment,
+                #     "ko_payment":best_candidate.ko_payment,
+                # }
+            return HoraInfo(
+                    fu=0,
+                    fan=0,
+                    yakus=[],
+                    points=0,
+                    oya_payment=0,
+                    ko_payment=0
+                )
+            # return {
+            #     "fu":0,
+            #     "fan":0,
+            #     "yakus":[],
+            #     "points":0,
+            #     "oya_payment":0,
+            #     "ko_payment":0,
+            # }
+
 
     def __init__(self, hora_yakuinfo, combination, taken_index):
         self.hora_yakuinfo = hora_yakuinfo

@@ -9,7 +9,7 @@ from mjaigym.board.function.pai import Pai
 from mjaigym.board.function.rs_shanten_analysis import RsShantenAnalysis
 from mjaigym.board.function.efficient_dfs import Dfs
 from mjaigym.board.function.yaku_name import YAKU_CHANNEL_MAP
-
+import mjaigym.loggers as lgs
 
 
 class HorapointDfsFeature():
@@ -17,16 +17,18 @@ class HorapointDfsFeature():
     """
     shanten_analysis = RsShantenAnalysis()
     target_points = [3900,7700,12000]
-    
+    DEPTH = 2
+
     @classmethod
     def get_length(cls)->int:
-        yaku_ch = len(YAKU_CHANNEL_MAP) * 2 # depth 1, depth 2, depth 3.
+        yaku_ch = len(YAKU_CHANNEL_MAP) * cls.DEPTH # depth 1, depth 2, depth 3.
         point_ch = len(cls.target_points)
         return yaku_ch + point_ch
 
     @classmethod
     def calc(cls, result:np.array, board_state:BoardState, player_id:int, oracle_feature_flag:bool, dfs=Dfs()):
         
+        depth = cls.DEPTH
         player_tehai = board_state.tehais[player_id]
         nums = [0] * 34
         for t in player_tehai:
@@ -41,9 +43,6 @@ class HorapointDfsFeature():
             furo_akadora_num += len([p for p in furo.pais if p.is_red])
 
         
-        
-        
-        
         # # ignore -1, more than 2
         dfs_result = None
         
@@ -54,9 +53,10 @@ class HorapointDfsFeature():
         uradoras = []
         num_akadoras = tehai_akadora_num + furo_akadora_num
 
-        depth = 3
-        possible_yakus = set()
+        
+        
 
+        
         shanten_normal, shanten_kokushi, shanten_chitoitsu = cls.shanten_analysis.calc_all_shanten(nums, len(player_furos))
 
         results = []
@@ -101,29 +101,39 @@ class HorapointDfsFeature():
                 shanten_kokushi=shanten_kokushi,
             )
             results.extend(kokushi_results)
-                
+
+        results = [r for r in results if r.valid()]
+        if len(results) == 0:
+            return
+
+
         for i in range(34):
             i_dahaiable_horas = [r for r in results if r.is_dahaiable(i)]
             if len(i_dahaiable_horas) == 0:
                 continue
 
-            # point_max = max([hora.get_point() for hora in i_dahaiable_horas])
-            # for point_index, point in enumerate(cls.target_points):
-            #     pass
+            point_max = max([hora.get_point() for hora in i_dahaiable_horas])
+            for point_index, point in enumerate(cls.target_points):
+                if point <= point_max:
+                    target_channel = -point_index-1
+                    result[target_channel:,i,0] = 1
+                    break
             
-            
-            # possible_yakus = itertools.chain.from_iterable([hora.get_yakus() for hora in i_dahaiable_horas])
-            
-            # print(point_max, set(possible_yakus))
+            yaku_dist_set = set()
+            for hora in i_dahaiable_horas:
+                dist = hora.distance()
+                
+                # if dist == 3:
+                #     lgs.logger_main.warn((nums, hora.diff))
 
-            
-            # if possible_yaku in YAKU_CHANNEL_MAP:
-            #     target_channel = YAKU_CHANNEL_MAP[possible_yaku]
-            #     result[target_channel,:,0] = 1
-        # offset = 1
-        # shanten_index = len(cls.target_points) + min(2, current_shanten) # -1~2
-        # shanten_index += offset
-        # result[shanten_index,:,0] = 1
-        # print(datetime.datetime.now(), "end")
+                for yaku in hora.get_yakus():
+                    yaku_dist_set.add((yaku, dist))
+                    
+                
+            for (yaku, dist) in yaku_dist_set:
+                if yaku in YAKU_CHANNEL_MAP:
+                    target_channel = YAKU_CHANNEL_MAP[yaku] + ((dist-1) * len(YAKU_CHANNEL_MAP))
+                    result[target_channel,i,0] = 1
+
 
         
