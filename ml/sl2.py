@@ -142,9 +142,9 @@ class SlTrainer():
                     sample = experience_memory.consume()
                     game_chunk_experiences.append(sample)
                 lgs.logger_main.info(f"add {onetime_update_samples} new samples")
-                # if len(game_chunk_experiences) != game_chunk_experiences.maxlen:
-                #     lgs.logger_main.info(f"game buffer not full {len(game_chunk_experiences)}/{game_chunk_experiences.maxlen}, end train...")
-                #     continue
+                if len(game_chunk_experiences) != game_chunk_experiences.maxlen:
+                    lgs.logger_main.info(f"game buffer not full {len(game_chunk_experiences)}/{game_chunk_experiences.maxlen}, end train...")
+                    continue
 
                 self.train(game_chunk_experiences, agent, update_count)
                 lgs.logger_main.info(f"end train")

@@ -28,8 +28,6 @@ class Dfs():
     def __init__(self):
         self.changed_buffer_with_head = {Syu.Manzu:{}, Syu.Pinzu:{}, Syu.Souzu:{}, Syu.Ji:{}}
         self.changed_buffer_nohead = {Syu.Manzu:{}, Syu.Pinzu:{}, Syu.Souzu:{}, Syu.Ji:{}}
-        self.tehai_change_cache = {}
-        self.head_tehai_change_cache = {}
         self.hora_cash = {}
         self.apply_change_cache = {}
         self.cut_mentsu_cache = {}
