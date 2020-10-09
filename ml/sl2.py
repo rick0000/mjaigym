@@ -28,8 +28,8 @@ from .custom_observer import SampleCustomObserver
 import mjaigym.loggers as lgs
 from ml.framework import Experience
 from mjaigym.config import ModelConfig
-from ml.model import  Head2SlModel, Head34SlModel
-from ml.agent import InnerAgent, MjAgent, DahaiTrainableAgent, FixPolicyAgent
+from ml.model import  Head2SlModel, Head34SlModel, Head34Value1SlModel
+from ml.agent import InnerAgent, MjAgent, DahaiTrainableAgent, FixPolicyAgent, DahaiActorCriticAgent
 
 
 class Memory:
@@ -82,16 +82,20 @@ class SlTrainer():
 
         
         generate_proc_num = multiprocessing.cpu_count()
-        # generate_proc_num = max(1, generate_proc_num)
-        generate_proc_num = 1
+        generate_proc_num = max(1, generate_proc_num)
+        # generate_proc_num = 1
 
         processses = []
         # run file glob process
         mjson_path = "/data/mjson/train/"
+        
         grob_process = Process(target=self.generate_mjson_path, args=(self.mjson_path_queue, mjson_path))
         grob_process.start()
         processses.append(grob_process)
         # run generate process
+        
+        # debug
+        # self.generate_data(0,self.mjson_path_queue, self.experiences, env)
         
         for i in range(generate_proc_num):
             p = Process(target=self.generate_data, args=(i, self.mjson_path_queue, self.experiences, env))
@@ -142,9 +146,13 @@ class SlTrainer():
                     sample = experience_memory.consume()
                     game_chunk_experiences.append(sample)
                 lgs.logger_main.info(f"add {onetime_update_samples} new samples")
+
+
+                """ skip fill buffer check
                 if len(game_chunk_experiences) != game_chunk_experiences.maxlen:
                     lgs.logger_main.info(f"game buffer not full {len(game_chunk_experiences)}/{game_chunk_experiences.maxlen}, end train...")
                     continue
+                """
 
                 self.train(game_chunk_experiences, agent, update_count)
                 lgs.logger_main.info(f"end train")
@@ -192,7 +200,10 @@ class SlTrainer():
                 one_kyoku_length = len(kyoku.kyoku_mjsons)
                 reversed_discount_rewards = [last_reward * math.pow(self.reward_discount_rate, i) for i in range(one_kyoku_length)]
                 discount_rewards = list(reversed(reversed_discount_rewards))
-                reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i], board_states[i])  for i in range(one_kyoku_length)]
+                # 1000 diff as loss 1
+                discount_rewards = [d/1000.0 for d in discount_rewards]
+
+                reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i][actions[i]["actor"]], board_states[i])  for i in range(one_kyoku_length) if "actor" in actions[i]]
                 one_game_experience.extend(reward_dicided_experience)
 
             # d = [a for a in one_game_experience if a.action["type"]=="dahai"]
@@ -216,7 +227,7 @@ if __name__ == "__main__":
     model_config = ModelConfig(
             resnet_repeat=50,
             mid_channels=256,
-            learning_rate=0.0005,
+            learning_rate=0.00001,
             batch_size=256,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")
@@ -234,7 +245,7 @@ if __name__ == "__main__":
     env = SampleCustomObserver(board=ArchiveBoard(), reward_calclator_cls=KyokuScoreReward)
     actions = env.action_space
     
-    dahai_agent = DahaiTrainableAgent(actions["dahai_agent"], Head34SlModel, model_config)
+    dahai_agent = DahaiActorCriticAgent(actions["dahai_agent"], Head34Value1SlModel, model_config)
     reach_agent = FixPolicyAgent(np.array([0.0, 1.0])) # always do reach
     chi_agent = FixPolicyAgent(np.array([1.0, 0.0])) # never chi
     pon_agent = FixPolicyAgent(np.array([1.0, 0.0])) # never pon

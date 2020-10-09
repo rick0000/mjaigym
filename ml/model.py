@@ -10,9 +10,10 @@ import importlib
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 import mjaigym.loggers as lgs
-from ml.net import Head34Net, Head2Net
+from ml.net import Head34Net, Head2Net, ActorCriticNet
 from mjaigym.board import BoardState
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -31,6 +32,7 @@ class Model(metaclass=ABCMeta):
         self.criterion = self.get_criterion()
         self.softmax = nn.Softmax(dim=1)
         self.batch_size = batch_size
+
 
     def load(self, path):
         state = torch.load(path)
@@ -265,3 +267,182 @@ class CriticModel(Model):
     @abstractmethod
     def update(self, experiences):
         raise NotImplementedError()
+
+class Head34Value1SlModel(Model):
+    """ActorCritic教師あり打牌用モデル
+    """
+    
+
+    def __init__(self, in_channels:int, mid_channels:int, blocks_num:int, learning_rate:float, batch_size:int):
+        super().__init__(in_channels, mid_channels, blocks_num, learning_rate, batch_size)
+        self.celoss = nn.CrossEntropyLoss()
+        self.mseloss = nn.MSELoss()
+        
+    def build_model(self, in_channels:int, mid_channels:int, blocks_num:int):
+        return ActorCriticNet(in_channels, mid_channels, blocks_num)
+    
+    def get_criterion(self):
+
+        def sl_criterion_func(outputs, targets, v_outputs, v_targets):
+            v_targets = torch.unsqueeze(v_targets, 1)
+            value_loss = self.mseloss(v_outputs, v_targets)
+            policy_loss = self.celoss(outputs, targets)
+            
+            return policy_loss, value_loss
+
+        def criterion_func(outputs, targets, v_outputs, v_targets):
+            # 1000点異なる場合にvalue lossが1とする
+            v_targets = torch.unsqueeze(v_targets, 1)
+            targets = torch.unsqueeze(targets,1)
+            log_probs = F.log_softmax(outputs, 1)
+            log_action_probs = log_probs.gather(1, Variable(targets))
+            v_targets = torch.unsqueeze(v_targets,1)
+            advantage = v_targets - v_outputs.detach()
+            policy_loss = (-log_action_probs * Variable(advantage)).mean()
+            
+            value_loss = self.mseloss(v_outputs, v_targets)
+            
+            probs = F.softmax(outputs,1)
+            entropy_loss = (log_probs * probs).mean()
+            return policy_loss, value_loss, entropy_loss
+            
+        return sl_criterion_func
+
+    def policy(self, states):
+        self.model.eval()
+        with torch.no_grad():
+            inputs = torch.Tensor(states).float().to(DEVICE)
+            policy = self.model(inputs)
+            prob = self.softmax(policy)
+        return prob.cpu().detach().numpy()
+    
+    def estimate(self, states):
+        raise NotImplementedError()
+
+    def evaluate(self, experiences):
+        batch_num = len(experiences) // self.batch_size
+        if batch_num == 0:
+            return 0, 0
+
+        total_loss = 0.0
+        correct = 0
+        total = 0
+        states = np.array([e[0] for e in experiences])
+        actions = np.array([e[1] for e in experiences])
+        rewards = np.array([e[2] for e in experiences])
+        
+        # lgs.logger_main.info(f"start transfer states size:{sys.getsizeof(states)//(1024*1024)}MB")
+        all_inputs = torch.Tensor(states).float().to(DEVICE)
+        all_targets = torch.Tensor(actions).long().to(DEVICE)
+        all_v_targets = torch.Tensor(rewards).float().to(DEVICE)
+        # lgs.logger_main.info(f"start train {len(sampled_experiences)}records to {batch_num} minibatchs")
+        
+        for i in range(batch_num):
+            inputs = all_inputs[i*self.batch_size:(i+1)*self.batch_size]
+            targets = all_targets[i*self.batch_size:(i+1)*self.batch_size]
+            v_targets = all_v_targets[i*self.batch_size:(i+1)*self.batch_size]
+
+            self.model.eval()
+            with torch.no_grad():
+                outputs, v_outputs = self.model(inputs)
+                policy_loss, value_loss = self.criterion(outputs, targets, v_outputs, v_targets)
+                _, predicted = torch.max(outputs.data, 1)
+                correct += predicted.eq(targets.data).cpu().sum().detach()
+                total += len(states)
+                total_loss += loss.cpu().detach()
+
+            
+        gc.collect()    
+        acc = 100.0 * correct / (total + EPS)
+        return float(total_loss / batch_num), float(acc)
+
+    def update(self, experiences):
+        sampled_experiences = random.sample(
+                experiences, 
+                min(self.batch_size*10, len(experiences))
+            )
+
+        batch_num = len(sampled_experiences) // self.batch_size
+        if batch_num == 0:
+            return 0, 0
+        
+        total_loss = 0.0
+        correct = 0
+        total = 0
+
+        states = np.array([e[0] for e in sampled_experiences])
+        actions = np.array([e[1] for e in sampled_experiences])
+        rewards = np.array([e[2] for e in sampled_experiences])
+        
+        # lgs.logger_main.info(f"start transfer states size:{sys.getsizeof(states)//(1024*1024)}MB")
+        all_inputs = torch.Tensor(states).float().to(DEVICE)
+        all_targets = torch.Tensor(actions).long().to(DEVICE)
+        all_v_targets = torch.Tensor(rewards).float().to(DEVICE)
+        # lgs.logger_main.info(f"start train {len(sampled_experiences)}records to {batch_num} minibatchs")
+        
+        result = {}
+        all_p_loss = 0
+        all_v_loss = 0
+        all_v_mse = 0
+        for i in range(batch_num):
+            inputs = all_inputs[i*self.batch_size:(i+1)*self.batch_size]
+            targets = all_targets[i*self.batch_size:(i+1)*self.batch_size]
+            v_targets = all_v_targets[i*self.batch_size:(i+1)*self.batch_size]
+            self.model.train()
+            outputs, v_outputs = self.model(inputs)
+            policy_loss, value_loss = self.criterion(outputs, targets, v_outputs, v_targets)
+            loss = policy_loss + value_loss
+            # loss = value_loss
+
+            all_p_loss += policy_loss.detach()
+            all_v_loss += value_loss.detach()
+            
+
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            
+
+            _, predicted = torch.max(outputs.data, 1)
+            correct += predicted.eq(targets.data).cpu().sum().detach()
+            total += len(inputs)
+            total_loss += loss.cpu().detach()
+        
+        
+        gc.collect()
+        
+        acc = 100.0 * correct / (total + EPS)
+        result["train_dahai_acc"] = float(acc)
+        
+        result["train_loss"] = float(total_loss / batch_num)
+        result["train_dahai_loss"] = all_p_loss / batch_num
+        result["train_value_loss"] = all_v_loss / batch_num
+        
+        return result
+
+
+
+if __name__ == "__main__":
+    in_channels = 10
+    mid_channels = 128
+    blocks_num = 10
+    learning_rate = 0.01
+    batch_size = 128
+    
+    model = Head34Value1SlModel(
+        in_channels,
+        mid_channels,
+        blocks_num,
+        learning_rate,
+        batch_size
+    )
+    
+    exps = []
+    for _ in range(256):
+        state = np.random.randint(0,2,size=(in_channels,34,1))
+        action = np.random.randint(34)
+        reward = np.random.randint(-100,100)
+        exps.append([state, action, reward])
+
+    # import pdb; pdb.set_trace(); import time; time.sleep(1)
+    model.update(exps)

@@ -94,6 +94,7 @@ class HoraRs():
                 show,
             )
         except:
+            import pdb; pdb.set_trace(); import time; time.sleep(1)
             result = ([0,0,0,0,0], [])
         self._points = result[0]
         self._yakus = result[1]

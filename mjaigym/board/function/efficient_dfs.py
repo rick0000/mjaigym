@@ -88,6 +88,9 @@ class Dfs():
                     for (j_sub, j_add) in itertools.product(minus_ranges, add_ranges):
                         items = [m_sub, m_add, p_sub, p_add, s_sub, s_add, j_sub, j_add]
                         
+                        change_sum = sum([sc for sc in items])
+                        if change_sum != 0:
+                            continue
                         change_dist_sum = sum([abs(sc) for sc in items])
                         if change_dist_sum > depth*2:
                             continue
@@ -342,6 +345,9 @@ class Dfs():
             
             for c in itertools.product(*targets):
                 flatten = tuple(sorted(itertools.chain.from_iterable(c)))
+
+                if (len(flatten) == (sum(tehai) -2) // 3) == False:
+                    import pdb; pdb.set_trace(); import time; time.sleep(1)
                 mpsz_combinations.add(((head, flatten), change_dist_sum))
 
 

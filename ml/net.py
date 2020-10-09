@@ -93,12 +93,23 @@ class Head2Net(nn.Module):
         return x
 
 class ActorCriticNet(nn.Module):
-    def __init__(self, head34net:Head34Net, mid_channels:int):
+    def __init__(self, in_channels:int, mid_channels:int, blocks_num:int):
         super(ActorCriticNet, self).__init__()
         
-        self.head34_preproc = head34net.preproc
-        self.head34_res_blocks = head34net.res_blocks
-        self.head34_postproc = head34net.postproc
+        self.preproc = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=mid_channels, kernel_size=(3,1), padding=(1,0), bias=False),
+            nn.BatchNorm2d(mid_channels),
+            nn.ReLU()
+        )
+
+        blocks = []
+        for _i in range(blocks_num):
+            blocks.append(ResBlock(mid_channels))
+
+        self.res_blocks = nn.Sequential(*blocks)
+        self.postproc = nn.Sequential(
+            nn.Conv2d(in_channels=mid_channels, out_channels=1, kernel_size=(1,1), padding=(0,0), bias=False),
+        )
 
         # for v head
         self.v_post_proc = nn.Sequential(
@@ -108,9 +119,9 @@ class ActorCriticNet(nn.Module):
         self.v_out = nn.Linear(256, 1)
 
     def forward(self, x):
-        h = self.head34_preproc(x)
-        h = self.head34_res_blocks(h)
-        x = self.head34_postproc(h)
+        h = self.preproc(x)
+        h = self.res_blocks(h)
+        x = self.postproc(h)
         x = x.view(x.size(0), -1)
 
         v = self.v_post_proc(h)
@@ -118,5 +129,6 @@ class ActorCriticNet(nn.Module):
         v = self.v_fc1(v)
         v = self.v_fc2(v)
         v = self.v_out(v)
+        
 
         return x, v

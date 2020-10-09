@@ -212,33 +212,23 @@ class MjAgent():
         update_result = {}
         stats = self.dahai_agent.update(experiences)
         if stats is not None:
-            loss, acc = stats
-            update_result["dahai_loss"] = loss
-            update_result["dahai_acc"] = acc
+            update_result.update(stats)
 
         stats = self.reach_agent.update(experiences)
         if stats is not None:
-            loss, acc = stats
-            update_result["reach_loss"] = loss
-            update_result["reach_acc"] = acc
+            update_result.update(stats)
 
         stats = self.chi_agent.update(experiences)
         if stats is not None:
-            loss, acc = stats
-            update_result["chi_loss"] = loss
-            update_result["chi_acc"] = acc
+            update_result.update(stats)
 
         stats = self.pon_agent.update(experiences)
         if stats is not None:
-            loss, acc = stats
-            update_result["pon_loss"] = loss
-            update_result["pon_acc"] = acc
+            update_result.update(stats)
 
         stats = self.kan_agent.update(experiences)
         if stats is not None:
-            loss, acc = stats
-            update_result["kan_loss"] = loss
-            update_result["kan_acc"] = acc
+            update_result.update(stats)
 
         return update_result
 
@@ -307,13 +297,13 @@ class DahaiTrainableAgent(InnerAgent):
         self.model_config = model_config
         
     def update(self, experiences:typing.List[Experience]):
-        
+        """
+        打牌用特徴量を抽出する
+        """
         state_action_rewards = []
         for experience in experiences:
             for i in range(4):
                 player_state = experience.state[i]
-                
-
                 if player_state.dahai_observation is not None\
                     and not experience.board_state.reach[i]\
                     and experience.action["type"] == MjMove.dahai.value:
@@ -331,41 +321,7 @@ class DahaiTrainableAgent(InnerAgent):
             self.initialize(state_action_rewards[0][0])
 
 
-        loss, acc = self.model.update(state_action_rewards)
-
-
-        """
-        if len(state_action_rewards) == 0:
-            lgs.logger_main.warn(f"state_action_rewards len is 0, end dahai update")
-        if self.update_buffer is None:
-            capacity = len(state_action_rewards)*10
-            capacity = min(capacity, 100_000)
-            lgs.logger_main.info(f"experience buffer initialized with capacity:{capacity}")
-            self.update_buffer = deque(maxlen=capacity)
-
-        # update buffer not over than 10% new samples.
-        update_size = self.update_buffer.maxlen // 10
-        update_size = min(update_size, len(state_action_rewards))
-        state_action_rewards = random.choices(state_action_rewards, k=update_size)
-        self.update_buffer.extend(state_action_rewards)
-
-        if len(self.update_buffer) < self.update_buffer.maxlen:
-            lgs.logger_main.info(f"not filled buffer, end dahai update. {len(self.update_buffer)}/{self.update_buffer.maxlen}")
-            return
-
-        lgs.logger_main.info("start dahai model update")
-        batch_num = len(state_action_rewards) // self.model_config.batch_size
-        batch_num = min(batch_num, 10)
-        sampled_state_action_rewards = random.choices(self.update_buffer, k=batch_num*self.model_config.batch_size)
-    
-        loss, acc = self.model.update(sampled_state_action_rewards)
-        
-        lgs.logger_main.info("end dahai model update")
-        
-        sampled_state_action_rewards.clear()
-        state_action_rewards.clear()
-        """
-        return loss, acc
+        return self.model.update(state_action_rewards)
 
     def evaluate(self, experiences:typing.List[Experience]):
         lgs.logger_main.info("start dahai model evaluate")
@@ -428,3 +384,65 @@ class MaxUkeireMjAgent(MjAgent):
 
     def update(self):
         pass
+
+
+
+class DahaiActorCriticAgent(InnerAgent):
+    """ActorCritic法を用いた打牌モデル用の内部モデルエージェント"""
+    def __init__(self, actions, model_class, model_config, epsilon=0.0):
+        super(DahaiActorCriticAgent, self).__init__(actions, model_class, model_config, epsilon)
+        self.update_buffer = None
+        self.model_config = model_config
+        
+    def update(self, experiences:typing.List[Experience]):
+        """
+        打牌用特徴量を抽出する
+        """
+        state_action_rewards = []
+        for experience in experiences:
+            for i in range(4):
+                player_state = experience.state[i]
+                if player_state.dahai_observation is not None\
+                    and not experience.board_state.reach[i]\
+                    and experience.action["type"] == MjMove.dahai.value:
+                    
+                    label = Pai.str_to_id(experience.action["pai"])
+                    state_action_rewards.append(tuple((
+                        player_state.dahai_observation,
+                        label,
+                        experience.reward,
+                    )))
+        
+        # print("dahai update s_a_r",len(state_action_rewards))
+        
+        if not self.initialized:
+            self.initialize(state_action_rewards[0][0])
+
+        return self.model.update(state_action_rewards)
+
+    def evaluate(self, experiences:typing.List[Experience]):
+        lgs.logger_main.info("start dahai model evaluate")
+        state_action_rewards = []
+        for experience in experiences:
+            for i in range(4):
+                player_state = experience.state[i]
+                
+                if player_state.dahai_observation is not None\
+                    and not experience.board_state.reach[i]\
+                    and experience.action["type"] == MjMove.dahai.value:
+                    
+                    label = Pai.str_to_id(experience.action["pai"])
+                    state_action_rewards.append(tuple((
+                        player_state.dahai_observation,
+                        label,
+                        experience.reward,
+                    )))
+        batch_num = len(state_action_rewards) // self.model_config.batch_size
+        sampled_state_action_rewards = random.choices(state_action_rewards, k=batch_num*self.model_config.batch_size)
+        
+        loss, acc = self.model.evaluate(sampled_state_action_rewards)
+        lgs.logger_main.info(f"end dahai model evaluate")
+        
+        sampled_state_action_rewards.clear()
+        state_action_rewards.clear()
+        return loss, acc
