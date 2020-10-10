@@ -36,13 +36,13 @@ class SampleCustomObserver(MjObserver):
             TehaiFeature,
             TypeFeature,
         ]
-    OnTsumoFeaturesLength = sum([f.get_length() for f in OnTsumoFeatures])
+    OnTsumoFeaturesLength = sum([f.get_length() for f in OnTsumoFeatures]) + HorapointDfsFeature.get_length()
 
     OnOtherDahaiFeatures:List[FuroAppendFeature] = [
             FuroCandidateFuroAppendFeature,
             ShantenFuroAppendFeature,
         ]
-    OnOtherDahaiFeaturesLength = sum([f.get_length() for f in OnOtherDahaiFeatures])
+    OnOtherDahaiFeaturesLength = sum([f.get_length() for f in OnOtherDahaiFeatures])  + HorapointDfsFeature.get_length()
 
 
     def get_tsumo_observe_channels_num(self):

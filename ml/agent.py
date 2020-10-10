@@ -59,6 +59,14 @@ class MjAgent():
         self.pon_agent.save(save_dir / i_str / "pon.pth")
         self.kan_agent.save(save_dir / i_str / "kan.pth")
 
+    def load(self, save_dir, my_tsumo_channel, other_dahai_channel):
+        
+        self.dahai_agent.load(save_dir / "dahai.pth", my_tsumo_channel)
+        self.reach_agent.load(save_dir / "reach.pth", my_tsumo_channel)
+        self.chi_agent.load(save_dir / "chi.pth", other_dahai_channel)
+        self.pon_agent.load(save_dir / "pon.pth", other_dahai_channel)
+        self.kan_agent.load(save_dir / "kan.pth", other_dahai_channel)
+
     def play(self, env, episode_count, render):
         for i in range(episode_count):
             state, reward, done, info = env.reset()
@@ -280,10 +288,15 @@ class InnerAgent():
         if self.model is not None:
             self.model.save(save_path)
     
-    def load(self, load_path):
-        if self.model is not None:
-            self.initialize(self.observation)
-
+    def load(self, load_path, in_channels:int):
+        self.model = self.model_class(
+            in_channels=in_channels,
+            mid_channels=self.model_config.mid_channels,
+            blocks_num=self.model_config.resnet_repeat,
+            learning_rate=self.model_config.learning_rate,
+            batch_size=self.model_config.batch_size,
+        )
+        self.initialized=True
         self.model.load(load_path)
 
 
@@ -366,6 +379,11 @@ class FixPolicyAgent(InnerAgent):
         pass
     def save(self, save_path):
         pass
+    def initialize(self, observation):
+        pass
+    def load(self, load_path, in_channels:int):
+        pass
+        
 
 
 
@@ -384,7 +402,13 @@ class MaxUkeireMjAgent(MjAgent):
 
     def update(self):
         pass
-
+    def save(self, save_path):
+        pass
+    def initialize(self, observation):
+        pass
+    def load(self, load_path, in_channels:int):
+        pass
+        
 
 
 class DahaiActorCriticAgent(InnerAgent):
@@ -446,3 +470,4 @@ class DahaiActorCriticAgent(InnerAgent):
         sampled_state_action_rewards.clear()
         state_action_rewards.clear()
         return loss, acc
+
