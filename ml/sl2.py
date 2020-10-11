@@ -147,8 +147,8 @@ class SlTrainer():
             time.sleep(0.1)
 
     def consume_data(self, experience_memory:Memory, agent:MjAgent, load_model=None):
-        game_chunk_experiences = deque(maxlen=64)
-        onetime_update_samples = 6
+        game_chunk_experiences = deque(maxlen=128)
+        onetime_update_samples = 8
         update_count = 0
         # consume first observation for load
         if load_model:
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     model_config = ModelConfig(
             resnet_repeat=50,
             mid_channels=256,
-            learning_rate=0.0001,
+            learning_rate=0.001,
             batch_size=256,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")

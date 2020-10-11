@@ -113,7 +113,9 @@ class ActorCriticNet(nn.Module):
 
         # for v head
         self.v_post_proc = nn.Sequential(
-            nn.Conv2d(in_channels=mid_channels, out_channels=32, kernel_size=(3,1), padding= (1,0), bias=False))
+            nn.Conv2d(in_channels=mid_channels, out_channels=32, kernel_size=(3,1), padding= (1,0), bias=False),
+            nn.BatchNorm2d(32),
+            )
         self.v_fc1 = nn.Linear(34*32, 1024)
         self.v_fc2 = nn.Linear(1024, 256)
         self.v_out = nn.Linear(256, 1)
