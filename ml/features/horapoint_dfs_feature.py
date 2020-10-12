@@ -17,7 +17,7 @@ class HorapointDfsFeature():
     """
     shanten_analysis = RsShantenAnalysis()
     target_points = [3900,7700,12000]
-    DEPTH = 1
+    DEPTH = 2
 
     @classmethod
     def get_length(cls)->int:

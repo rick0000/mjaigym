@@ -387,7 +387,7 @@ class Head34Value1SlModel(Model):
             self.model.train()
             outputs, v_outputs = self.model(inputs)
             policy_loss, value_loss = self.criterion(outputs, targets, v_outputs, v_targets)
-            loss = policy_loss + value_loss
+            loss = policy_loss + 2.0 * value_loss
             # loss = value_loss
 
             all_p_loss += policy_loss.detach()
@@ -413,6 +413,7 @@ class Head34Value1SlModel(Model):
         result["train_loss"] = float(total_loss / batch_num)
         result["train_dahai_loss"] = all_p_loss / batch_num
         result["train_value_loss"] = all_v_loss / batch_num
+        result["value_loss - reward.var"] = np.var(rewards) - result["train_value_loss"]
         
         return result
 

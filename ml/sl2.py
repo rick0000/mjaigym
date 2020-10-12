@@ -112,7 +112,7 @@ class SlTrainer():
                     self.mjson_path_queue, 
                     self.experiences, 
                     env,
-                    0.01
+                    0.05
                     ),
                 daemon=True)
             p.daemon
@@ -170,57 +170,61 @@ class SlTrainer():
         pon_buffer = deque(maxlen=self.batch_size*10)
         kan_buffer = deque(maxlen=self.batch_size*10)
 
+        game_count = 0
         dahai_update_count = 0
         # consume first observation for load
         if load_model:
             agent.load(load_model, self.in_on_tsumo_channels, self.in_other_dahai_channels)
 
         while True:
-            if len(experience_memory) > 0:
-                
-                sample_num = 0
-                
-                experiences = experience_memory.consume()
-                
-                for experience in experiences:
-                    for i in range(4):
-                        player_state = experience.state[i]
-                        if player_state.dahai_observation is not None\
-                            and not experience.board_state.reach[i]\
-                            and experience.action["type"] == MjMove.dahai.value:
-                    
-                            label = Pai.str_to_id(experience.action["pai"])
-                            dahai_state_action_rewards.append(tuple((
-                                player_state.dahai_observation,
-                                label,
-                                experience.reward,
-                            )))
+            
+            if len(experience_memory) == 0:
+                time.sleep(0.5)
+                continue
+            
+            experiences = experience_memory.consume()
+            game_count += 1
 
-                # lgs.logger_main.info(f"add {onetime_update_samples} new games, {sample_num} new samples")
-
-
-                # train model
+            for experience in experiences:
+                for i in range(4):
+                    player_state = experience.state[i]
+                    if player_state.dahai_observation is not None\
+                        and not experience.board_state.reach[i]\
+                        and experience.action["type"] == MjMove.dahai.value:
                 
+                        label = Pai.str_to_id(experience.action["pai"])
+                        dahai_state_action_rewards.append(tuple((
+                            player_state.dahai_observation,
+                            label,
+                            experience.reward,
+                        )))
 
-                if len(dahai_state_action_rewards) == dahai_state_action_rewards.maxlen:
-                    dahai_update_count += 1
-                    lgs.logger_main.info("start dahai train")
-                    self.train_dahai(dahai_state_action_rewards, agent, dahai_update_count)
-                    dahai_state_action_rewards.clear()
-                                   
-                    lgs.logger_main.info(f"end train")
-                    if dahai_update_count % 10 == 0:
-                        agent.save(self.session_dir,update_count)
-                else:
-                    pass
-                    # lgs.logger_main.info(f"dahai {len(dahai_state_action_rewards)}/{dahai_state_action_rewards.maxlen}")
-            time.sleep(0.1)
+            
+
+            # train model
+            
+
+            if len(dahai_state_action_rewards) == dahai_state_action_rewards.maxlen:
+                dahai_update_count += 1
+                lgs.logger_main.info("start dahai train")
+                self.train_dahai(dahai_state_action_rewards, agent, game_count)
+                rs = np.array([r[2] for r in dahai_state_action_rewards])
+                lgs.logger_main.info(f"rewards var:{np.var(rs)}, max:{rs.max()}, min:{rs.min()}, mean:{rs.mean()}")
                 
-    def train_dahai(self, dahai_state_action_rewards, agent:MjAgent, update_count):
+                dahai_state_action_rewards.clear()
+                lgs.logger_main.info(f"end train")
+                if dahai_update_count % 10 == 0:
+                    agent.save(self.session_dir,game_count)
+            else:
+                pass
+                print(f"dahai {len(dahai_state_action_rewards)}/{dahai_state_action_rewards.maxlen}", end='\r')
+            
+                
+    def train_dahai(self, dahai_state_action_rewards, agent:MjAgent, game_count):
         update_result = agent.update_dahai(dahai_state_action_rewards)
         lgs.logger_main.info(f"update resulf, {update_result}")
         for key, value in update_result.items():
-            self.tfboard_logger.write(key, value, update_count)
+            self.tfboard_logger.write(key, value, game_count)
 
 
     def _analyze_one_game(self, args):
@@ -280,10 +284,10 @@ if __name__ == "__main__":
     log_dir ="./output/logs"
     session_name = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     model_config = ModelConfig(
-            resnet_repeat=50,
+            resnet_repeat=3,
             mid_channels=256,
-            learning_rate=0.001,
-            batch_size=256,
+            learning_rate=10**-4,
+            batch_size=32,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")
     

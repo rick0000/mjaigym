@@ -11,10 +11,10 @@ import torch
 if torch.cuda.is_available():
     from torch import multiprocessing
     from torch.multiprocessing import Pool, Process, set_start_method
-    # try:
-    #     set_start_method('spawn')
-    # except RuntimeError:
-    #     pass
+    try:
+        set_start_method('spawn')
+    except RuntimeError:
+        pass
 else:
     from multiprocessing import Pool, Process, set_start_method
 import numpy as np
