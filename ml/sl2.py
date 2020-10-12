@@ -161,7 +161,7 @@ class SlTrainer():
                 experience_memory.append(sampled_experiences)
 
             # print(f"experience_memory:{len(experience_memory)}")
-            time.sleep(0.1)
+            # time.sleep(0.1)
 
     def consume_data(self, experience_memory:Memory, agent:MjAgent, load_model=None):
         dahai_state_action_rewards = deque(maxlen=self.batch_size*10)
@@ -170,14 +170,14 @@ class SlTrainer():
         pon_buffer = deque(maxlen=self.batch_size*10)
         kan_buffer = deque(maxlen=self.batch_size*10)
 
-        update_count = 0
+        dahai_update_count = 0
         # consume first observation for load
         if load_model:
             agent.load(load_model, self.in_on_tsumo_channels, self.in_other_dahai_channels)
 
         while True:
             if len(experience_memory) > 0:
-                update_count += 1
+                
                 sample_num = 0
                 
                 experiences = experience_memory.consume()
@@ -198,25 +198,22 @@ class SlTrainer():
 
                 # lgs.logger_main.info(f"add {onetime_update_samples} new games, {sample_num} new samples")
 
-                """
-                # skip fill buffer check
-                if len(experience_buffer) != experience_buffer.maxlen:
-                    # lgs.logger_main.info(f"game buffer not full {len(experience_buffer)}/{experience_buffer.maxlen}, end train...")
-                    continue
-                """
 
                 # train model
-                lgs.logger_main.info("start train")
+                
 
-                if len(dahai_state_action_rewards) != dahai_state_action_rewards.maxlen:
-                    self.train_dahai(dahai_state_action_rewards, agent, update_count)
+                if len(dahai_state_action_rewards) == dahai_state_action_rewards.maxlen:
+                    dahai_update_count += 1
+                    lgs.logger_main.info("start dahai train")
+                    self.train_dahai(dahai_state_action_rewards, agent, dahai_update_count)
                     dahai_state_action_rewards.clear()
-                
-                
-                lgs.logger_main.info(f"end train")
-                if update_count % 10 == 0:
-                    agent.save(self.session_dir,update_count)
-            
+                                   
+                    lgs.logger_main.info(f"end train")
+                    if dahai_update_count % 10 == 0:
+                        agent.save(self.session_dir,update_count)
+                else:
+                    pass
+                    # lgs.logger_main.info(f"dahai {len(dahai_state_action_rewards)}/{dahai_state_action_rewards.maxlen}")
             time.sleep(0.1)
                 
     def train_dahai(self, dahai_state_action_rewards, agent:MjAgent, update_count):
