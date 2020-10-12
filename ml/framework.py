@@ -21,10 +21,10 @@ import multiprocessing
 if torch.cuda.is_available():
     from torch import multiprocessing
     from torch.multiprocessing import Pool, Process, set_start_method
-    try:
-        set_start_method('spawn')
-    except RuntimeError:
-        pass
+    # try:
+    #     set_start_method('spawn')
+    # except RuntimeError:
+    #     pass
 else:
     from multiprocessing import Pool, Process, set_start_method
 
@@ -71,6 +71,74 @@ class SceneObservation:
             kan_observations=[],
         )
 
+class DelayCalclatedObservation:
+    """ Same as SceneObservation
+    feature is calclated at needed timing
+
+    SceneObservationと同等。
+    特徴量は必要になったタイミングで計算される。
+    """
+
+    def __init__(self):
+        self._dahai_observation: np.array = None
+        self._reach_observation: np.array = None
+        self._chi_observations: typing.List[typing.Tuple[typing.Dict, np.array]] = []
+        self._pon_observations: typing.List[typing.Tuple[typing.Dict, np.array]] = []
+        self._kan_observations: typing.List[typing.Tuple[typing.Dict, np.array]] = []
+
+        self.dahai_func = lambda :None
+        self.reach_func = lambda :None
+        self.chi_func = lambda :[]
+        self.pon_func = lambda :[]
+        self.kan_func = lambda :[]
+
+        self.initialized = False
+
+
+    def calclate(self):
+        self._dahai_observation = self.dahai_func()
+        self._reach_observation = self.reach_func()
+        self._chi_observations = self.chi_func()
+        self._pon_observations = self.pon_func()
+        self._kan_observations = self.kan_func()
+
+        # clear local object
+        self.dahai_func = DelayCalclatedObservation.default_on_tsumo
+        self.reach_func = DelayCalclatedObservation.default_on_tsumo
+        self.chi_func = DelayCalclatedObservation.default_on_othredahai
+        self.pon_func = DelayCalclatedObservation.default_on_othredahai
+        self.kan_func = DelayCalclatedObservation.default_on_othredahai
+
+        self.initialized = True
+
+    @classmethod
+    def default_on_tsumo(cls):
+        return None
+    
+    @classmethod
+    def default_on_othredahai(cls):
+        return []
+
+    @property
+    def dahai_observation(self):
+        return self._dahai_observation
+
+    @property
+    def reach_observation(self):
+        return self._reach_observation
+
+    @property
+    def chi_observation(self):
+        return self._chi_observations
+
+    @property
+    def pon_observation(self):
+        return self._pon_observations
+
+    @property
+    def kan_observation(self):
+        return self._kan_observations
+
 
 @dataclass
 class Experience:
@@ -80,12 +148,15 @@ class Experience:
     action: executed action
     reward: this step reward
 
-
     """
     state:typing.Dict[int, SceneObservation] # key is 0~3, value is observation for player0~3
     action:typing.Dict
     reward:float
     board_state:BoardState
+
+    def calclate(self):
+        for i,s in self.state.items():
+            s.calclate()
 
 
 """ Observers
@@ -216,6 +287,23 @@ class MjObserver(metaclass=ABCMeta):
         """
         print(self._board.get_state())
 
+    def _delay_on_mytsumo(self, func, args):
+        def f():
+            return func(*args)
+        return f
+
+    
+    def _delay_on_otherdahai(self, func, args, actions):
+        def f():
+            result = []
+            for action in actions:
+                result.append(func(args[0], args[1], action, args[2]))
+            return result
+
+        return f
+
+
+
     def _transform(self, state:BoardState, possible_actions:typing.Dict[int,typing.Dict], oracle_enable_flag:bool=False):
         """ convert board state to feature.
         
@@ -231,7 +319,7 @@ class MjObserver(metaclass=ABCMeta):
         result = {}
         for player_id in range(4):
             # initialize
-            player_observation = SceneObservation.create_empty()
+            player_observation = DelayCalclatedObservation()
             
             player_possible_actions = possible_actions[player_id]
             
@@ -243,21 +331,27 @@ class MjObserver(metaclass=ABCMeta):
 
             # transform with candidate actions
             if len(dahais) > 0:
-                player_observation.dahai_observation = self.trainsform_dahai(state, player_id, oracle_enable_flag)
+                player_observation.dahai_func = self._delay_on_mytsumo(self.trainsform_dahai, (state, player_id, oracle_enable_flag))
             elif len(reachs) > 0:
-                player_observation.reach_observation = self.trainsform_reach(state, player_id, oracle_enable_flag)
+                player_observation.reach_func = self._delay_on_mytsumo(self.trainsform_reach, (state, player_id, oracle_enable_flag))
             elif len(chis) > 0:
-                for chi in chis:
-                    converted = self.trainsform_chi(state, player_id, chi, oracle_enable_flag)
-                    player_observation.chi_observations.append((chi, converted))
+                player_observation.chi_func = self._delay_on_otherdahai(
+                    self.trainsform_chi,
+                    (state, player_id, oracle_enable_flag),
+                    chis,
+                )
             elif len(pons) > 0:
-                for pon in pons:
-                    converted = self.trainsform_pon(state, player_id, pon, oracle_enable_flag)
-                    player_observation.pon_observations.append((pon, converted))
+                player_observation.pon_func = self._delay_on_otherdahai(
+                    self.trainsform_pon,
+                    (state, player_id, oracle_enable_flag),
+                    pons,
+                )
             elif len(kans) > 0:
-                for kan in kans:
-                    converted = self.trainsform_kan(state, player_id, kan, oracle_enable_flag)
-                    player_observation.kan_observations.append((kan, converted))
+                player_observation.kan_func = self._delay_on_otherdahai(
+                    self.trainsform_kan,
+                    (state, player_id, oracle_enable_flag),
+                    kans,
+                )
             
             result[player_id] = player_observation
 

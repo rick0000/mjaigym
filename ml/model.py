@@ -357,28 +357,24 @@ class Head34Value1SlModel(Model):
         return float(total_loss / batch_num), float(acc)
 
     def update(self, experiences):
-        sampled_experiences = random.sample(
-                experiences, 
-                min(self.batch_size*10, len(experiences))
-            )
 
-        batch_num = len(sampled_experiences) // self.batch_size
+        batch_num = len(experiences) // self.batch_size
         if batch_num == 0:
-            return 0, 0
+            return {}
         
         total_loss = 0.0
         correct = 0
         total = 0
 
-        states = np.array([e[0] for e in sampled_experiences])
-        actions = np.array([e[1] for e in sampled_experiences])
-        rewards = np.array([e[2] for e in sampled_experiences])
+        states = np.array([e[0] for e in experiences])
+        actions = np.array([e[1] for e in experiences])
+        rewards = np.array([e[2] for e in experiences])
         
         # lgs.logger_main.info(f"start transfer states size:{sys.getsizeof(states)//(1024*1024)}MB")
         all_inputs = torch.Tensor(states).float().to(DEVICE)
         all_targets = torch.Tensor(actions).long().to(DEVICE)
         all_v_targets = torch.Tensor(rewards).float().to(DEVICE)
-        # lgs.logger_main.info(f"start train {len(sampled_experiences)}records to {batch_num} minibatchs")
+        # lgs.logger_main.info(f"start train {len(experiences)}records to {batch_num} minibatchs")
         
         result = {}
         all_p_loss = 0

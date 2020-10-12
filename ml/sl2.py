@@ -78,14 +78,12 @@ class SlTrainer():
         self.batch_size = batch_size
         self.evaluate_per_update = evaluate_per_update
         self.session_name = session_name
-        self.session_dir = Path(self.log_dir) /self.session_name
+        self.session_dir = Path(self.log_dir) / self.session_name
         
         self.tfboard_logger = TensorBoardLogger(log_dir=self.log_dir, session_name=self.session_name)
         
 
     def train_loop(self, agent, env, load_model=None):
-
-
 
         generate_proc_num = multiprocessing.cpu_count()
         generate_proc_num = max(1, generate_proc_num)
@@ -109,12 +107,19 @@ class SlTrainer():
         for i in range(generate_proc_num):
             p = Process(
                 target=self.generate_data, 
-                args=(i, self.mjson_path_queue, self.experiences, env),
+                args=(
+                    i, 
+                    self.mjson_path_queue, 
+                    self.experiences, 
+                    env,
+                    0.01
+                    ),
                 daemon=True)
             p.daemon
             p.start()
             processses.append(p)
         
+
         # run consume process
         self.consume_data(self.experiences, agent, load_model=load_model)
         # p = Process(target=self.consume_data, args=(self.experiences, agent))
@@ -131,8 +136,14 @@ class SlTrainer():
             # this function blocks when full
             mjson_memory.append(mjson_path)
 
-
-    def generate_data(self, process_number:int, input_memory:Memory, experience_memory:Memory, env):
+    def generate_data(
+            self, 
+            process_number:int, 
+            input_memory:Memory, 
+            experience_memory:Memory, 
+            env,
+            sampling_ratio,
+            ):
         while True:
             # print(f"generate data@{process_number}")
             mjson_path = input_memory.consume()
@@ -141,14 +152,24 @@ class SlTrainer():
             if len(experience_memory) > 64:
                 # print("full queue, remove sample")
                 experience_memory.consume()
-            experience_memory.append(experiences)
-        
+
+            sample_num = int(sampling_ratio * len(experiences))
+            if sample_num > 0:
+                sampled_experiences = random.sample(experiences, sample_num)
+                # print(f"sampled:{len(experiences)}->{len(sampled_experiences)}")
+                [s.calclate() for s in sampled_experiences]
+                experience_memory.append(sampled_experiences)
+
             # print(f"experience_memory:{len(experience_memory)}")
             time.sleep(0.1)
 
     def consume_data(self, experience_memory:Memory, agent:MjAgent, load_model=None):
-        game_chunk_experiences = deque(maxlen=128)
-        onetime_update_samples = 8
+        dahai_state_action_rewards = deque(maxlen=self.batch_size*10)
+        reach_buffer = deque(maxlen=self.batch_size*10)
+        chi_buffer = deque(maxlen=self.batch_size*10)
+        pon_buffer = deque(maxlen=self.batch_size*10)
+        kan_buffer = deque(maxlen=self.batch_size*10)
+
         update_count = 0
         # consume first observation for load
         if load_model:
@@ -157,31 +178,50 @@ class SlTrainer():
         while True:
             if len(experience_memory) > 0:
                 update_count += 1
+                sample_num = 0
+                
+                experiences = experience_memory.consume()
+                
+                for experience in experiences:
+                    for i in range(4):
+                        player_state = experience.state[i]
+                        if player_state.dahai_observation is not None\
+                            and not experience.board_state.reach[i]\
+                            and experience.action["type"] == MjMove.dahai.value:
+                    
+                            label = Pai.str_to_id(experience.action["pai"])
+                            dahai_state_action_rewards.append(tuple((
+                                player_state.dahai_observation,
+                                label,
+                                experience.reward,
+                            )))
+
+                # lgs.logger_main.info(f"add {onetime_update_samples} new games, {sample_num} new samples")
+
+                """
+                # skip fill buffer check
+                if len(experience_buffer) != experience_buffer.maxlen:
+                    # lgs.logger_main.info(f"game buffer not full {len(experience_buffer)}/{experience_buffer.maxlen}, end train...")
+                    continue
+                """
+
                 # train model
                 lgs.logger_main.info("start train")
-                for i in range(onetime_update_samples):
-                    sample = experience_memory.consume()
-                    game_chunk_experiences.append(sample)
-                lgs.logger_main.info(f"add {onetime_update_samples} new samples")
 
-
-                # """ skip fill buffer check
-                if len(game_chunk_experiences) != game_chunk_experiences.maxlen:
-                    lgs.logger_main.info(f"game buffer not full {len(game_chunk_experiences)}/{game_chunk_experiences.maxlen}, end train...")
-                    continue
+                if len(dahai_state_action_rewards) != dahai_state_action_rewards.maxlen:
+                    self.train_dahai(dahai_state_action_rewards, agent, update_count)
+                    dahai_state_action_rewards.clear()
                 
-
-                self.train(game_chunk_experiences, agent, update_count)
+                
                 lgs.logger_main.info(f"end train")
                 if update_count % 10 == 0:
                     agent.save(self.session_dir,update_count)
             
             time.sleep(0.1)
                 
-    def train(self, game_chunk_experiences, agent:MjAgent, update_count):
-        flatten_experiences = list(itertools.chain.from_iterable(game_chunk_experiences))
-        update_result = agent.update(flatten_experiences)
-    
+    def train_dahai(self, dahai_state_action_rewards, agent:MjAgent, update_count):
+        update_result = agent.update_dahai(dahai_state_action_rewards)
+        lgs.logger_main.info(f"update resulf, {update_result}")
         for key, value in update_result.items():
             self.tfboard_logger.write(key, value, update_count)
 

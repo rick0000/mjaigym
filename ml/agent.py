@@ -11,10 +11,10 @@ import torch
 if torch.cuda.is_available():
     from torch import multiprocessing
     from torch.multiprocessing import Pool, Process, set_start_method
-    try:
-        set_start_method('spawn')
-    except RuntimeError:
-        pass
+    # try:
+    #     set_start_method('spawn')
+    # except RuntimeError:
+    #     pass
 else:
     from multiprocessing import Pool, Process, set_start_method
 import numpy as np
@@ -215,10 +215,16 @@ class MjAgent():
 
         return evaluate_result
 
+    def update_dahai(self, s_a_r):
+        return self.dahai_agent.update(s_a_r)
+
+
     def update(self, experiences:typing.List[Experience]):
         # make dataset for each agents
         update_result = {}
+        
         stats = self.dahai_agent.update(experiences)
+        
         if stats is not None:
             update_result.update(stats)
 
@@ -309,26 +315,9 @@ class DahaiTrainableAgent(InnerAgent):
         self.update_buffer = None
         self.model_config = model_config
         
-    def update(self, experiences:typing.List[Experience]):
-        """
-        打牌用特徴量を抽出する
-        """
-        state_action_rewards = []
-        for experience in experiences:
-            for i in range(4):
-                player_state = experience.state[i]
-                if player_state.dahai_observation is not None\
-                    and not experience.board_state.reach[i]\
-                    and experience.action["type"] == MjMove.dahai.value:
-                    
-                    label = Pai.str_to_id(experience.action["pai"])
-                    state_action_rewards.append(tuple((
-                        player_state.dahai_observation,
-                        label,
-                        experience.reward,
-                    )))
+    def update(self, state_action_rewards):
         
-        # print("dahai update s_a_r",len(state_action_rewards))
+        print("dahai update s_a_r",len(state_action_rewards))
         
         if not self.initialized:
             self.initialize(state_action_rewards[0][0])
@@ -418,30 +407,14 @@ class DahaiActorCriticAgent(InnerAgent):
         self.update_buffer = None
         self.model_config = model_config
         
-    def update(self, experiences:typing.List[Experience]):
-        """
-        打牌用特徴量を抽出する
-        """
-        state_action_rewards = []
-        for experience in experiences:
-            for i in range(4):
-                player_state = experience.state[i]
-                if player_state.dahai_observation is not None\
-                    and not experience.board_state.reach[i]\
-                    and experience.action["type"] == MjMove.dahai.value:
-                    
-                    label = Pai.str_to_id(experience.action["pai"])
-                    state_action_rewards.append(tuple((
-                        player_state.dahai_observation,
-                        label,
-                        experience.reward,
-                    )))
+    def update(self, state_action_rewards):
         
-        # print("dahai update s_a_r",len(state_action_rewards))
+        print("dahai update s_a_r",len(state_action_rewards))
         
         if not self.initialized:
             self.initialize(state_action_rewards[0][0])
 
+        
         return self.model.update(state_action_rewards)
 
     def evaluate(self, experiences:typing.List[Experience]):
