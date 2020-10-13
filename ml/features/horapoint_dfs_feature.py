@@ -17,7 +17,7 @@ class HorapointDfsFeature(Feature):
     """
     shanten_analysis = RsShantenAnalysis()
     target_points = [3900,7700,12000]
-    DEPTH = 2
+    DEPTH = 3
     
     YAKU_CH = len(YAKU_CHANNEL_MAP) * DEPTH # depth 1, depth 2, depth 3.
     POINT_CH = len(target_points)

@@ -113,26 +113,22 @@ class SlTrainer():
 
     def train_loop(self, agent, env, load_model=None):
 
-        generate_proc_num = multiprocessing.cpu_count()
-        generate_proc_num = max(1, generate_proc_num)
-        # generate_proc_num = 1
 
         processses = []
         # run file glob process
         
         test_size = 1024
-        test_s_a_rs = self.prepare_test_data(self.test_dir, env, test_size)
+        test_s_a_rs = self.prepare_test_data(self.test_dir, env, test_size, env.get_tsumo_observe_channels_num())
         
         # prepare to generator, queue
         experiences_queue = Queue()
         s_a_rs_generator = StateActionRewardGenerator(
             self.train_dir,
             experiences_queue,
-            samplig_rate=0.05,
+            sampling_rate=0.05,
             reward_discount_rate=0.99
         )
         process_num = multiprocessing.cpu_count()
-        process_num = 1
         s_a_rs_generator.start(env, process_num)
 
         # run consume process
@@ -184,8 +180,8 @@ class SlTrainer():
                 pass
                 print(f"dahai {len(s_a_rs.dahai_queue)}/{s_a_rs.dahai_queue.maxlen}", end='\r')
 
-    def prepare_test_data(self, test_dir, env, test_size=1024):
-        cache_file_name = f"cache/test_{test_size}"
+    def prepare_test_data(self, test_dir, env, test_size, tsumo_observe_channels_num):
+        cache_file_name = f"cache/test_{test_size}_{tsumo_observe_channels_num}"
         try:
             lgs.logger_main.info("load cached test data")
             return joblib.load(cache_file_name)
@@ -203,13 +199,13 @@ class SlTrainer():
             print("fail to save change cache")
         return result
         
-    def _prepare_test_data(self, test_dir, env, test_size=1024):
+    def _prepare_test_data(self, test_dir, env, test_size):
 
         test_experiences_queue = Queue()
         test_s_a_rs_generator = StateActionRewardGenerator(
             test_dir,
             test_experiences_queue,
-            samplig_rate=0.05,
+            sampling_rate=0.05,
             reward_discount_rate=0.99
         )
         test_s_a_rs_generator.start(env, multiprocessing.cpu_count())
@@ -268,7 +264,7 @@ if __name__ == "__main__":
             resnet_repeat=50,
             mid_channels=256,
             learning_rate=10**-4,
-            batch_size=128,
+            batch_size=256,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")
     
