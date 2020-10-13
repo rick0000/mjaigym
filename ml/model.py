@@ -268,11 +268,10 @@ class CriticModel(Model):
     def update(self, experiences):
         raise NotImplementedError()
 
+
 class Head34Value1SlModel(Model):
     """ActorCritic教師あり打牌用モデル
     """
-    
-
     def __init__(self, in_channels:int, mid_channels:int, blocks_num:int, learning_rate:float, batch_size:int):
         super().__init__(in_channels, mid_channels, blocks_num, learning_rate, batch_size)
         self.celoss = nn.CrossEntropyLoss()
@@ -289,22 +288,6 @@ class Head34Value1SlModel(Model):
             policy_loss = self.celoss(outputs, targets)
             
             return policy_loss, value_loss
-
-        def criterion_func(outputs, targets, v_outputs, v_targets):
-            # 1000点異なる場合にvalue lossが1とする
-            v_targets = torch.unsqueeze(v_targets, 1)
-            targets = torch.unsqueeze(targets,1)
-            log_probs = F.log_softmax(outputs, 1)
-            log_action_probs = log_probs.gather(1, Variable(targets))
-            v_targets = torch.unsqueeze(v_targets,1)
-            advantage = v_targets - v_outputs.detach()
-            policy_loss = (-log_action_probs * Variable(advantage)).mean()
-            
-            value_loss = self.mseloss(v_outputs, v_targets)
-            
-            probs = F.softmax(outputs,1)
-            entropy_loss = (log_probs * probs).mean()
-            return policy_loss, value_loss, entropy_loss
             
         return sl_criterion_func
 
@@ -387,7 +370,7 @@ class Head34Value1SlModel(Model):
             self.model.train()
             outputs, v_outputs = self.model(inputs)
             policy_loss, value_loss = self.criterion(outputs, targets, v_outputs, v_targets)
-            loss = policy_loss + 2.0 * value_loss
+            loss = policy_loss + value_loss
             # loss = value_loss
 
             all_p_loss += policy_loss.detach()
@@ -413,11 +396,63 @@ class Head34Value1SlModel(Model):
         result["train_loss"] = float(total_loss / batch_num)
         result["train_dahai_loss"] = all_p_loss / batch_num
         result["train_value_loss"] = all_v_loss / batch_num
-        result["value_loss - reward.var"] = np.var(rewards) - result["train_value_loss"]
+        result["reward.var - value_loss"] = float(np.var(rewards)) - result["train_value_loss"]
         
         return result
 
+    def evaluate(self, experiences):
 
+        batch_num = len(experiences) // self.batch_size
+        if batch_num == 0:
+            return {}
+        
+        total_loss = 0.0
+        correct = 0
+        total = 0
+
+        states = np.array([e[0] for e in experiences])
+        actions = np.array([e[1] for e in experiences])
+        rewards = np.array([e[2] for e in experiences])
+        
+        # lgs.logger_main.info(f"start transfer states size:{sys.getsizeof(states)//(1024*1024)}MB")
+        all_inputs = torch.Tensor(states).float().to(DEVICE)
+        all_targets = torch.Tensor(actions).long().to(DEVICE)
+        all_v_targets = torch.Tensor(rewards).float().to(DEVICE)
+        # lgs.logger_main.info(f"start train {len(experiences)}records to {batch_num} minibatchs")
+        
+        result = {}
+        all_p_loss = 0
+        all_v_loss = 0
+        all_v_mse = 0
+        for i in range(batch_num):
+            inputs = all_inputs[i*self.batch_size:(i+1)*self.batch_size]
+            targets = all_targets[i*self.batch_size:(i+1)*self.batch_size]
+            v_targets = all_v_targets[i*self.batch_size:(i+1)*self.batch_size]
+            self.model.eval()
+            outputs, v_outputs = self.model(inputs)
+            policy_loss, value_loss = self.criterion(outputs, targets, v_outputs, v_targets)
+            loss = policy_loss + value_loss
+            # loss = value_loss
+
+            all_p_loss += policy_loss.detach()
+            all_v_loss += value_loss.detach()
+
+            _, predicted = torch.max(outputs.data, 1)
+            correct += predicted.eq(targets.data).cpu().sum().detach()
+            total += len(inputs)
+            total_loss += loss.cpu().detach()
+        
+        gc.collect()
+        
+        acc = 100.0 * correct / (total + EPS)
+        result["test_dahai_acc"] = float(acc)
+        
+        result["test_loss"] = float(total_loss / batch_num)
+        result["test_dahai_loss"] = all_p_loss / batch_num
+        result["test_value_loss"] = all_v_loss / batch_num
+        result["test_reward.var - value_loss"] = float(np.var(rewards)) - result["test_value_loss"]
+        
+        return result
 
 if __name__ == "__main__":
     in_channels = 10

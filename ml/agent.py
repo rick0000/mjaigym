@@ -218,6 +218,9 @@ class MjAgent():
     def update_dahai(self, s_a_r):
         return self.dahai_agent.update(s_a_r)
 
+    def evaluate_dahai(self, s_a_r):
+        return self.dahai_agent.evaluate(s_a_r)
+
 
     def update(self, experiences:typing.List[Experience]):
         # make dataset for each agents
@@ -408,39 +411,18 @@ class DahaiActorCriticAgent(InnerAgent):
         self.model_config = model_config
         
     def update(self, state_action_rewards):
-        
-        print("dahai update s_a_r",len(state_action_rewards))
+        lgs.logger_main.info(f"dahai update s_a_r:{len(state_action_rewards)}")
         
         if not self.initialized:
             self.initialize(state_action_rewards[0][0])
 
-        
         return self.model.update(state_action_rewards)
 
-    def evaluate(self, experiences:typing.List[Experience]):
-        lgs.logger_main.info("start dahai model evaluate")
-        state_action_rewards = []
-        for experience in experiences:
-            for i in range(4):
-                player_state = experience.state[i]
-                
-                if player_state.dahai_observation is not None\
-                    and not experience.board_state.reach[i]\
-                    and experience.action["type"] == MjMove.dahai.value:
-                    
-                    label = Pai.str_to_id(experience.action["pai"])
-                    state_action_rewards.append(tuple((
-                        player_state.dahai_observation,
-                        label,
-                        experience.reward,
-                    )))
-        batch_num = len(state_action_rewards) // self.model_config.batch_size
-        sampled_state_action_rewards = random.choices(state_action_rewards, k=batch_num*self.model_config.batch_size)
-        
-        loss, acc = self.model.evaluate(sampled_state_action_rewards)
-        lgs.logger_main.info(f"end dahai model evaluate")
-        
-        sampled_state_action_rewards.clear()
-        state_action_rewards.clear()
-        return loss, acc
+    def evaluate(self, state_action_rewards):
+        lgs.logger_main.info(f"dahai update s_a_r:{len(state_action_rewards)}")
+
+        if not self.initialized:
+            self.initialize(state_action_rewards[0][0])
+
+        return self.model.evaluate(state_action_rewards)
 

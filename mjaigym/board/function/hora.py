@@ -178,14 +178,6 @@ class Candidate():
                 oya_payment=best_candidate.oya_payment,
                 ko_payment=best_candidate.ko_payment,
             )
-            # return {
-            #     "fu":best_candidate.fu,
-            #     "fan":best_candidate.fan,
-            #     "yakus":best_candidate.yakus,
-            #     "points":best_candidate.points,
-            #     "oya_payment":best_candidate.oya_payment,
-            #     "ko_payment":best_candidate.ko_payment,
-            # }
         return HoraInfo(
                 fu=0,
                 fan=0,
@@ -194,14 +186,7 @@ class Candidate():
                 oya_payment=0,
                 ko_payment=0
             )
-        # return {
-        #     "fu":0,
-        #     "fan":0,
-        #     "yakus":[],
-        #     "points":0,
-        #     "oya_payment":0,
-        #     "ko_payment":0,
-        # }
+
 
 
     @classmethod
@@ -283,14 +268,7 @@ class Candidate():
                     oya_payment=best_candidate.oya_payment,
                     ko_payment=best_candidate.ko_payment,
                 )
-                # return {
-                #     "fu":best_candidate.fu,
-                #     "fan":best_candidate.fan,
-                #     "yakus":best_candidate.yakus,
-                #     "points":best_candidate.points,
-                #     "oya_payment":best_candidate.oya_payment,
-                #     "ko_payment":best_candidate.ko_payment,
-                # }
+
             return HoraInfo(
                     fu=0,
                     fan=0,
@@ -299,14 +277,6 @@ class Candidate():
                     oya_payment=0,
                     ko_payment=0
                 )
-            # return {
-            #     "fu":0,
-            #     "fan":0,
-            #     "yakus":[],
-            #     "points":0,
-            #     "oya_payment":0,
-            #     "ko_payment":0,
-            # }
 
 
     def __init__(self, hora_yakuinfo, combination, taken_index):

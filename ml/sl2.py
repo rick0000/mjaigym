@@ -12,6 +12,7 @@ import datetime
 import itertools
 import time
 
+from dataclasses import dataclass
 import numpy as np
 from tqdm import tqdm
 import multiprocessing
@@ -30,20 +31,45 @@ from ml.framework import Experience
 from mjaigym.config import ModelConfig
 from ml.model import  Head2SlModel, Head34SlModel, Head34Value1SlModel
 from ml.agent import InnerAgent, MjAgent, DahaiTrainableAgent, FixPolicyAgent, DahaiActorCriticAgent
+from ml.s_a_r_generator import StateActionRewardGenerator
 
 
-class Memory:
-    def __init__(self, length=256*100):
-        self.queue = Queue(256*100)
+@dataclass
+class StateActionRewards:
+    dahai_queue:deque
+    reach_queue:deque
+    chi_queue:deque
+    pon_queue:deque
+    kan_queue:deque
 
-    def append(self, data):
-        self.queue.put(data)
+    @classmethod
+    def create_empty(cls, length):
+        return StateActionRewards(
+            deque(maxlen=length),
+            deque(maxlen=length),
+            deque(maxlen=length),
+            deque(maxlen=length),
+            deque(maxlen=length)
+            )
 
-    def consume(self):
-        return self.queue.get()
+    def register_experience_to_sars(self, experiences:deque):
+        for experience in experiences:
+            for i in range(4):
+                player_state = experience.state[i]
+                # create dahai s_a_r
+                if player_state.dahai_observation is not None\
+                    and not experience.board_state.reach[i]\
+                    and experience.action["type"] == MjMove.dahai.value:
 
-    def __len__(self):
-        return self.queue.qsize()
+                    label = Pai.str_to_id(experience.action["pai"])
+                    self.dahai_queue.append(tuple((
+                        player_state.dahai_observation,
+                        label,
+                        experience.reward,
+                    )))
+                
+                    # create reach ...
+    
 
 
 class SlTrainer():
@@ -69,8 +95,8 @@ class SlTrainer():
         self.in_other_dahai_channels = in_other_dahai_channels
             
 
-        self.mjson_path_queue = Memory(256)
-        self.experiences = Memory()
+        self.mjson_path_queue = Queue(256)
+        self.experiences = Queue()
 
         self.reward_discount_rate = reward_discount_rate
         
@@ -91,84 +117,32 @@ class SlTrainer():
 
         processses = []
         # run file glob process
-        mjson_path = "/data/mjson/train/"
         
-        grob_process = Process(
-            target=self.generate_mjson_path, 
-            args=(self.mjson_path_queue, mjson_path),
-            daemon=True)
-        grob_process.start()
-        processses.append(grob_process)
-        # run generate process
+        test_size = 100
+        test_s_a_rs = self.prepare_test_data(self.test_dir, env, test_size)
         
-        # debug
-        # self.generate_data(0,self.mjson_path_queue, self.experiences, env)
-        
-        for i in range(generate_proc_num):
-            p = Process(
-                target=self.generate_data, 
-                args=(
-                    i, 
-                    self.mjson_path_queue, 
-                    self.experiences, 
-                    env,
-                    0.05
-                    ),
-                daemon=True)
-            p.daemon
-            p.start()
-            processses.append(p)
-        
+        # prepare to generator, queue
+        experiences_queue = Queue()
+        s_a_rs_generator = StateActionRewardGenerator(
+            self.train_dir,
+            experiences_queue,
+            samplig_rate=0.05,
+            reward_discount_rate=0.99
+        )
+        s_a_rs_generator.start(env, multiprocessing.cpu_count())
 
         # run consume process
-        self.consume_data(self.experiences, agent, load_model=load_model)
-        # p = Process(target=self.consume_data, args=(self.experiences, agent))
-        # p.start()
-        # processses.append(p)
+        self.consume_data(experiences_queue, agent, test_s_a_rs, load_model=load_model)
         
-        # wait process finish
-        for p in processses:
-            p.join()
 
-    def generate_mjson_path(self, mjson_memory:Memory, mjson_dir):
-        mjson_paths = Path(self.train_dir).glob("**/*.mjson")
-        for mjson_path in mjson_paths:
-            # this function blocks when full
-            mjson_memory.append(mjson_path)
-
-    def generate_data(
+    def consume_data(
             self, 
-            process_number:int, 
-            input_memory:Memory, 
-            experience_memory:Memory, 
-            env,
-            sampling_ratio,
+            experience_queue:Queue, 
+            agent:MjAgent, 
+            test_s_a_rs:StateActionRewards, 
+            load_model=None
             ):
-        while True:
-            # print(f"generate data@{process_number}")
-            mjson_path = input_memory.consume()
-            experiences = self._analyze_one_game((mjson_path, copy.deepcopy(env)))
-            
-            if len(experience_memory) > 64:
-                # print("full queue, remove sample")
-                experience_memory.consume()
-
-            sample_num = int(sampling_ratio * len(experiences))
-            if sample_num > 0:
-                sampled_experiences = random.sample(experiences, sample_num)
-                # print(f"sampled:{len(experiences)}->{len(sampled_experiences)}")
-                [s.calclate() for s in sampled_experiences]
-                experience_memory.append(sampled_experiences)
-
-            # print(f"experience_memory:{len(experience_memory)}")
-            # time.sleep(0.1)
-
-    def consume_data(self, experience_memory:Memory, agent:MjAgent, load_model=None):
-        dahai_state_action_rewards = deque(maxlen=self.batch_size*10)
-        reach_buffer = deque(maxlen=self.batch_size*10)
-        chi_buffer = deque(maxlen=self.batch_size*10)
-        pon_buffer = deque(maxlen=self.batch_size*10)
-        kan_buffer = deque(maxlen=self.batch_size*10)
+        s_a_rs = StateActionRewards.create_empty(self.batch_size*10)
 
         game_count = 0
         dahai_update_count = 0
@@ -178,104 +152,87 @@ class SlTrainer():
 
         while True:
             
-            if len(experience_memory) == 0:
+            if experience_queue == 0:
                 time.sleep(0.5)
                 continue
             
-            experiences = experience_memory.consume()
+            experiences = experience_queue.get()
             game_count += 1
-
-            for experience in experiences:
-                for i in range(4):
-                    player_state = experience.state[i]
-                    if player_state.dahai_observation is not None\
-                        and not experience.board_state.reach[i]\
-                        and experience.action["type"] == MjMove.dahai.value:
-                
-                        label = Pai.str_to_id(experience.action["pai"])
-                        dahai_state_action_rewards.append(tuple((
-                            player_state.dahai_observation,
-                            label,
-                            experience.reward,
-                        )))
-
-            
+            s_a_rs.register_experience_to_sars(experiences)
 
             # train model
-            
-
-            if len(dahai_state_action_rewards) == dahai_state_action_rewards.maxlen:
+            if len(s_a_rs.dahai_queue) == s_a_rs.dahai_queue.maxlen:
                 dahai_update_count += 1
                 lgs.logger_main.info("start dahai train")
-                self.train_dahai(dahai_state_action_rewards, agent, game_count)
-                rs = np.array([r[2] for r in dahai_state_action_rewards])
-                lgs.logger_main.info(f"rewards var:{np.var(rs)}, max:{rs.max()}, min:{rs.min()}, mean:{rs.mean()}")
+                self.train_dahai(s_a_rs.dahai_queue, agent, game_count)
                 
-                dahai_state_action_rewards.clear()
+                s_a_rs.dahai_queue.clear()
                 lgs.logger_main.info(f"end train")
-                if dahai_update_count % 10 == 0:
-                    agent.save(self.session_dir,game_count)
+                
+                if dahai_update_count % 20 == 0:
+                    # save
+                    agent.save(self.session_dir, game_count)
+
+                if dahai_update_count % 5 == 0:
+                    self.evaluate_dahai(test_s_a_rs.dahai_queue, agent, game_count)
+
             else:
                 pass
-                print(f"dahai {len(dahai_state_action_rewards)}/{dahai_state_action_rewards.maxlen}", end='\r')
-            
-                
-    def train_dahai(self, dahai_state_action_rewards, agent:MjAgent, game_count):
-        update_result = agent.update_dahai(dahai_state_action_rewards)
-        lgs.logger_main.info(f"update resulf, {update_result}")
-        for key, value in update_result.items():
+                print(f"dahai {len(s_a_rs.dahai_queue)}/{s_a_rs.dahai_queue.maxlen}", end='\r')
+
+    def prepare_test_data(self, test_dir, env, test_size=1000):
+        test_experiences_queue = Queue()
+        test_s_a_rs_generator = StateActionRewardGenerator(
+            test_dir,
+            test_experiences_queue,
+            samplig_rate=0.05,
+            reward_discount_rate=0.99
+        )
+        test_s_a_rs_generator.start(env, multiprocessing.cpu_count())
+        
+        # prepare test data (refactor to function)
+        test_s_a_rs = StateActionRewards.create_empty(2000)
+        
+        while len(test_s_a_rs.dahai_queue) < test_size:
+            experiences = test_experiences_queue.get()
+            test_s_a_rs.register_experience_to_sars(experiences)
+            print(f"test data prepare... {len(test_s_a_rs.dahai_queue)}/{test_size}", end="\r")
+        test_s_a_rs_generator.terminate()
+        return test_s_a_rs
+
+    def train_dahai(
+            self,
+            dahai_state_action_rewards:StateActionRewards,
+            agent:MjAgent,
+            game_count:int):
+        result = agent.update_dahai(dahai_state_action_rewards)
+        lgs.logger_main.info("update result")
+        for key, value in result.items():
+            lgs.logger_main.info(f"{key}:{value:.03f}")
+        for key, value in result.items():
             self.tfboard_logger.write(key, value, game_count)
-
-
-    def _analyze_one_game(self, args):
-        try:
-            mjson_path, env = args
-            
-            one_game_experience = []
-             
-            mjson = Mjson.load(mjson_path)
-            for kyoku in mjson.game.kyokus:
-
-                state, reward, done, info = env.reset()
+        rs = np.array([r[2] for r in dahai_state_action_rewards])
+        lgs.logger_main.info(f"rewards var:{np.var(rs):.03f}, max:{rs.max():.03f}, min:{rs.min():.03f}, mean:{rs.mean():.03f}")
                 
-                states = []
-                actions = []
-                rewards = []
-                board_states = []
-                for action in kyoku.kyoku_mjsons:
-                    next_state, reward, done, info = env.step(action)
-                    states.append(state)
-                    actions.append(action)
-                    rewards.append(reward)
-                    board_states.append(info["board_state"])
-                    
-                    state = next_state
 
-                if len(rewards) == 0:
-                    continue
+    def evaluate_dahai(
+            self,
+            dahai_state_action_rewards:StateActionRewards,
+            agent:MjAgent,
+            game_count:int):
+        lgs.logger_main.info("-------------------------------------")
+        lgs.logger_main.info("test result")
+        result = agent.evaluate_dahai(dahai_state_action_rewards)
+        for key, value in result.items():
+            lgs.logger_main.info(f"{key}:{value:.03f}")
+        
+        for key, value in result.items():
+            self.tfboard_logger.write(key, value, game_count)
+        rs = np.array([r[2] for r in dahai_state_action_rewards])
+        lgs.logger_main.info(f"rewards var:{np.var(rs):.03f}, max:{rs.max():.03f}, min:{rs.min():.03f}, mean:{rs.mean():.03f}")
+        lgs.logger_main.info("-------------------------------------")
+        
 
-                # calclate kyoku discount rewards.
-                last_reward = np.array(rewards[-1])
-                one_kyoku_length = len(kyoku.kyoku_mjsons)
-                reversed_discount_rewards = [last_reward * math.pow(self.reward_discount_rate, i) for i in range(one_kyoku_length)]
-                discount_rewards = list(reversed(reversed_discount_rewards))
-                # 1000 diff as loss 1
-                discount_rewards = [d/1000.0 for d in discount_rewards]
-
-                reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i][actions[i]["actor"]], board_states[i])  for i in range(one_kyoku_length) if "actor" in actions[i]]
-                one_game_experience.extend(reward_dicided_experience)
-
-            # d = [a for a in one_game_experience if a.action["type"]=="dahai"]
-            # print("one game dahai len",len(d))
-            del env
-            return one_game_experience
-        except KeyboardInterrupt:
-            raise
-        except Exception as e:
-            lgs.logger_main.warn(f"fail to analyze {args}")
-            import traceback
-            print(traceback.format_exc())
-            return []
 
 
 if __name__ == "__main__":
@@ -284,10 +241,10 @@ if __name__ == "__main__":
     log_dir ="./output/logs"
     session_name = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     model_config = ModelConfig(
-            resnet_repeat=3,
+            resnet_repeat=50,
             mid_channels=256,
             learning_rate=10**-4,
-            batch_size=32,
+            batch_size=16,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")
     

@@ -52,10 +52,8 @@ class HorapointDfsFeature():
         doras = [p.succ for p in Pai.from_list(board_state.dora_markers)]
         uradoras = []
         num_akadoras = tehai_akadora_num + furo_akadora_num
-
         
         
-
         
         shanten_normal, shanten_kokushi, shanten_chitoitsu = cls.shanten_analysis.calc_all_shanten(nums, len(player_furos))
 
@@ -114,10 +112,10 @@ class HorapointDfsFeature():
 
             point_max = max([hora.get_point() for hora in i_dahaiable_horas])
             for point_index, point in enumerate(cls.target_points):
-                if point <= point_max:
+                if point_max >= point:
                     target_channel = -point_index-1
-                    result[target_channel:,i,0] = 1
-                    break
+                    result[target_channel,i,0] = 1
+                    
             
             yaku_dist_set = set()
             for hora in i_dahaiable_horas:
