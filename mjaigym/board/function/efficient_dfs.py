@@ -36,26 +36,26 @@ class Dfs():
         if mode % 3 == 2:
             return self._create_change14(depth)
         elif mode % 3 == 1:
-            # return self._create_change13(depth)
-            raise Exception("not intended path")
+            return self._create_change13(depth)
+            # raise Exception("not intended path")
 
 
-    # def _create_change13(self, depth):
-    #     cache_file_name = f"cache/{depth}_13_{CHANGE_CACHE}"
-    #     try:
-    #         return joblib.load(cache_file_name)
-    #         pass
-    #     except:
-    #         pass
+    def _create_change13(self, depth):
+        cache_file_name = f"cache/{depth}_13_{CHANGE_CACHE}"
+        try:
+            return joblib.load(cache_file_name)
+            pass
+        except:
+            pass
         
-    #     result = self._create_change(depth, change_sum=1)
+        result = self._create_change(depth, target_change_sum=1)
 
-    #     try:
-    #         os.makedirs(os.path.dirname(cache_file_name), exist_ok=True)
-    #         joblib.dump(result, cache_file_name)
-    #     except:
-    #         print("fail to save change cache")
-    #     return result
+        try:
+            os.makedirs(os.path.dirname(cache_file_name), exist_ok=True)
+            joblib.dump(result, cache_file_name)
+        except:
+            print("fail to save change cache")
+        return result
 
         
     def _create_change14(self, depth):
@@ -76,7 +76,7 @@ class Dfs():
 
         return result
 
-    def _create_change(self, depth):
+    def _create_change(self, depth, target_change_sum=0):
         m_sub = range(4)
         m_add = range(4)
         result = deque()
@@ -89,10 +89,10 @@ class Dfs():
                         items = [m_sub, m_add, p_sub, p_add, s_sub, s_add, j_sub, j_add]
                         
                         change_sum = sum([sc for sc in items])
-                        if change_sum != 0:
+                        if change_sum != target_change_sum:
                             continue
                         change_dist_sum = sum([abs(sc) for sc in items])
-                        if change_dist_sum > depth*2:
+                        if change_dist_sum + target_change_sum > depth*2:
                             continue
                         minus_sum_abs = sum([abs(sc) for sc in items if sc<0])
                         if minus_sum_abs > depth:
@@ -299,12 +299,6 @@ class Dfs():
             num_sum = datas[mpsj]["sum"]
             syu_change = change[mpsj.value]
             
-            # num_key = tuple(num)
-            
-            # if num_key not in changed_buffer_with_head[mpsj]:
-            #     changed_buffer_with_head[mpsj][num_key] = {}
-            # if num_key not in changed_buffer_nohead:
-            #     changed_buffer_nohead[mpsj][num_key] = {}
 
             if target == mpsj:
                 if mpsj == Syu.Ji:
@@ -312,8 +306,6 @@ class Dfs():
                 else:
                     head_candidate = self.get_with_head_combination(num, num_sum, syu_change, mpsj)
                 
-                # if head_candidate is not None:
-                #     print(num, change, head_candidate)
             else:
                 if mpsj == Syu.Ji:
                     combination = self.get_combination_ji(num, num_sum, syu_change, mpsj)
@@ -321,7 +313,6 @@ class Dfs():
                     combination = self.get_combination(num, num_sum, syu_change, mpsj)
                 mentsu_candidates.append(combination)
                  
-        # assert len(mentsu_candidates) == 3
         
         if head_candidate is None:
             return
@@ -331,7 +322,6 @@ class Dfs():
 
         change_dist_sum = sum([sum([abs(sc) for sc in syu_change]) for syu_change in change])
         
-
         for head in head_candidate:
             head_type_candidates = head_candidate[head]
             
@@ -346,8 +336,11 @@ class Dfs():
             for c in itertools.product(*targets):
                 flatten = tuple(sorted(itertools.chain.from_iterable(c)))
 
-                if (len(flatten) == (sum(tehai) -2) // 3) == False:
+                if (len(flatten) == (sum(tehai)) // 3) == False:
+                    print(tehai, flatten)
                     import pdb; pdb.set_trace(); import time; time.sleep(1)
+                    assert False
+
                 mpsz_combinations.add(((head, flatten), change_dist_sum))
 
 
@@ -751,8 +744,7 @@ class Dfs():
         for result in results:
             result_tehai = result[0]
             distance = result[1]
-            # if distance >= 5:
-            #     print("distance",distance)
+            
             
             if result_tehai in unioned_results:
                 unioned_results[result_tehai] = min(distance, unioned_results[result_tehai])
@@ -788,7 +780,7 @@ class Dfs():
             if hora_key in self.hora_cash:
                 (max_result, diff) = self.hora_cash[hora_key]
                 horas.append(DfsResult(DfsResultType.Normal, result_tehai, max_result, diff))
-                # print("hora cache found")
+                
                 continue
 
             if len(taken_candidate_ids) == 0:
@@ -799,9 +791,6 @@ class Dfs():
                 for _ in range(value):
                     changed_tehais.append(Pai.from_id(i))
             
-            
-            
-
             taken_changed_results = []
             for taken_id in taken_candidate_ids:
                 horra_tehai = copy.copy(changed_tehais)
@@ -847,12 +836,10 @@ class Dfs():
                 # print(hora)
                 taken_changed_results.append(hora)
         
-            # max_result = max(taken_changed_results, key= lambda x:{x["points"]*1000+x["fan"]*1000+x["fu"]})    
             max_result = max(taken_changed_results, key= lambda x:{x.points*1000+x.fan*1000+x.fu})    
             self.hora_cash[hora_key] = (max_result, diff)
             horas.append(DfsResult(DfsResultType.Normal, result_tehai, max_result, diff))
             
-            # print(result_tehai, max_result)
 
         return horas
 

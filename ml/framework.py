@@ -172,6 +172,7 @@ class MjObserver(metaclass=ABCMeta):
         self.reward_calclator = reward_calclator_cls()
         self.oracle_rate = oracle_rate
         self._dfs = Dfs()
+        
 
     @abstractmethod
     def get_tsumo_observe_channels_num(self):
@@ -278,7 +279,7 @@ class MjObserver(metaclass=ABCMeta):
             "board_state":board_state,
             }
 
-        oracle_enable_flag = random.random() < self.oracle_rate
+        oracle_enable_flag = random.random() <= self.oracle_rate
         return self._transform(board_state, possible_actions, oracle_enable_flag), reward, done, info
 
 

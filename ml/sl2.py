@@ -11,6 +11,8 @@ import pickle
 import datetime
 import itertools
 import time
+import os
+import joblib
 
 from dataclasses import dataclass
 import numpy as np
@@ -118,7 +120,7 @@ class SlTrainer():
         processses = []
         # run file glob process
         
-        test_size = 100
+        test_size = 1024
         test_s_a_rs = self.prepare_test_data(self.test_dir, env, test_size)
         
         # prepare to generator, queue
@@ -129,7 +131,9 @@ class SlTrainer():
             samplig_rate=0.05,
             reward_discount_rate=0.99
         )
-        s_a_rs_generator.start(env, multiprocessing.cpu_count())
+        process_num = multiprocessing.cpu_count()
+        process_num = 1
+        s_a_rs_generator.start(env, process_num)
 
         # run consume process
         self.consume_data(experiences_queue, agent, test_s_a_rs, load_model=load_model)
@@ -180,7 +184,27 @@ class SlTrainer():
                 pass
                 print(f"dahai {len(s_a_rs.dahai_queue)}/{s_a_rs.dahai_queue.maxlen}", end='\r')
 
-    def prepare_test_data(self, test_dir, env, test_size=1000):
+    def prepare_test_data(self, test_dir, env, test_size=1024):
+        cache_file_name = f"cache/test_{test_size}"
+        try:
+            lgs.logger_main.info("load cached test data")
+            return joblib.load(cache_file_name)
+            pass
+        except:
+            lgs.logger_main.info("failed to load")
+            pass
+        lgs.logger_main.info("create cached test data")
+        result = self._prepare_test_data(test_dir, env, test_size)
+
+        try:
+            os.makedirs(os.path.dirname(cache_file_name), exist_ok=True)
+            joblib.dump(result, cache_file_name)
+        except:
+            print("fail to save change cache")
+        return result
+        
+    def _prepare_test_data(self, test_dir, env, test_size=1024):
+
         test_experiences_queue = Queue()
         test_s_a_rs_generator = StateActionRewardGenerator(
             test_dir,
@@ -244,11 +268,11 @@ if __name__ == "__main__":
             resnet_repeat=50,
             mid_channels=256,
             learning_rate=10**-4,
-            batch_size=16,
+            batch_size=128,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")
     
-    env = SampleCustomObserver(board=ArchiveBoard(), reward_calclator_cls=KyokuScoreReward)
+    env = SampleCustomObserver(board=ArchiveBoard(), reward_calclator_cls=KyokuScoreReward, oracle_rate=1.0)
     actions = env.action_space
     
     sl_trainer = SlTrainer(
