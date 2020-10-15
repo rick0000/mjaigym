@@ -129,20 +129,23 @@ class HorapointDfsFeature(Feature):
                         continue
                     
                     yaku_dist_set = set()
+                    point_dist_set = set()
                     for hora in i_dahaiable_horas:
                         dist = hora.distance()
                         point = hora.get_point()
                         
                         for yaku in hora.get_yakus():
-                            yaku_dist_set.add((yaku, dist, point))
+                            yaku_dist_set.add((yaku, dist))
+                            point_dist_set.add((point, dist))
                     
-                    for (yaku, dist, point) in yaku_dist_set:
+                    for (yaku, dist) in yaku_dist_set:
                         # add yaku feature
                         if yaku in YAKU_CHANNEL_MAP:
                             target_channel = YAKU_CHANNEL_MAP[yaku] + ((dist-1) * len(YAKU_CHANNEL_MAP))
                             player_offset = from_player_view*cls.ONE_PLAYER_LENGTH
                             result[player_offset + target_channel,i,0] = 1
-                        
+
+                    for (point, dist) in point_dist_set:
                         # add hora point feature
                         for point_index, target_point in enumerate(cls.target_points):
                             if point >= target_point:

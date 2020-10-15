@@ -263,7 +263,7 @@ if __name__ == "__main__":
     model_config = ModelConfig(
             resnet_repeat=10,
             mid_channels=256,
-            learning_rate=10**-5,
+            learning_rate=5.0*10**-5,
             batch_size=256,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")
