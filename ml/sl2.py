@@ -261,7 +261,7 @@ if __name__ == "__main__":
     log_dir ="./output/logs"
     session_name = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     model_config = ModelConfig(
-            resnet_repeat=10,
+            resnet_repeat=50,
             mid_channels=256,
             learning_rate=5.0*10**-5,
             batch_size=256,
