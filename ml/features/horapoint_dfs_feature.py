@@ -17,7 +17,7 @@ class HorapointDfsFeature(Feature):
     """
     shanten_analysis = RsShantenAnalysis()
     target_points = [3900,7700,12000]
-    DEPTH = 2
+    DEPTH = 3
     
     YAKU_CH = len(YAKU_CHANNEL_MAP) * DEPTH # depth 1, depth 2, depth 3.
     POINT_CH = len(target_points) * DEPTH
@@ -158,6 +158,10 @@ class HorapointDfsFeature(Feature):
             else:
                 # ある牌を追加した際に和了可能な役か。
                 # 自分以外のプレーヤー（13枚系）の際に適用。
+                
+                # 比較実験のため暫定的に強制スキップ
+                continue
+
                 for i in range(34):
                     i_need_horas = [r for r in results if r.is_tsumoneed(i)]
                     if len(i_need_horas) == 0:
