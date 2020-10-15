@@ -1,5 +1,5 @@
 from typing import List
-
+import gc
 import numpy as np
 
 from .framework import MjObserver
@@ -35,15 +35,14 @@ class SampleCustomObserver(MjObserver):
             RestPaiInViewFeature,
             TehaiFeature,
             TypeFeature,
-            HorapointDfsFeature,
         ]
-    OnTsumoFeaturesLength = sum([f.get_length() for f in OnTsumoFeatures])
+    OnTsumoFeaturesLength = sum([f.get_length() for f in OnTsumoFeatures]) + HorapointDfsFeature.get_length()
 
     OnOtherDahaiFeatures:List[FuroAppendFeature] = [
             FuroCandidateFuroAppendFeature,
             ShantenFuroAppendFeature,
         ]
-    OnOtherDahaiFeaturesLength = sum([f.get_length() for f in OnOtherDahaiFeatures])
+    OnOtherDahaiFeaturesLength = sum([f.get_length() for f in OnOtherDahaiFeatures])  + HorapointDfsFeature.get_length()
 
 
     def get_tsumo_observe_channels_num(self):
@@ -74,13 +73,14 @@ class SampleCustomObserver(MjObserver):
         for feature in self.OnTsumoFeatures:
             feature_length = feature.get_length()
             target_feature_area = feature_area[start_index:start_index+feature_length]
-            if type(feature) == HorapointDfsFeature:
-                HorapointDfsFeature.calc(target_feature_area, state, id, oracle_enable_flag, dfs=self._dfs)
-            else:
-                feature.calc(target_feature_area, state, id, oracle_enable_flag)
+            feature.calc(target_feature_area, state, id, oracle_enable_flag)
             start_index += feature_length
 
-        return feature_area
+        dfs_feature_area = np.zeros((HorapointDfsFeature.get_length(), 34, 1), dtype='int8')
+        HorapointDfsFeature.calc(dfs_feature_area, state, id, oracle_enable_flag, self._dfs)
+        dfs_appended = np.concatenate([feature_area, dfs_feature_area], axis=0)
+        gc.collect()
+        return dfs_appended
 
     def _calc_on_other_dahai_feature(self, state, id, candidate_action, oracle_enable_flag):
         # ignore other dahai.

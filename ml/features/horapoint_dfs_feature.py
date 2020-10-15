@@ -159,8 +159,7 @@ class HorapointDfsFeature(Feature):
                 # ある牌を追加した際に和了可能な役か。
                 # 自分以外のプレーヤー（13枚系）の際に適用。
                 
-                # 比較実験のため暫定的に強制スキップ
-                continue
+                
 
                 for i in range(34):
                     i_need_horas = [r for r in results if r.is_tsumoneed(i)]
