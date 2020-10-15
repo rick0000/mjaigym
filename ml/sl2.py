@@ -211,7 +211,7 @@ class SlTrainer():
         test_s_a_rs_generator.start(env, multiprocessing.cpu_count())
         
         # prepare test data (refactor to function)
-        test_s_a_rs = StateActionRewards.create_empty(2000)
+        test_s_a_rs = StateActionRewards.create_empty(test_size)
         
         while len(test_s_a_rs.dahai_queue) < test_size:
             experiences = test_experiences_queue.get()
