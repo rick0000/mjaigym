@@ -12,10 +12,15 @@ class DfsResult:
         self.point_info = point_info
         self.diff = diff
         self.dahaiable_ids = [i for (i,num) in enumerate(diff) if num < 0]
+        self.need_ids = [i for (i,num) in enumerate(diff) if num > 0]
+        self.hora_path_length = sum([num for num in diff if num > 0])
 
     def is_dahaiable(self, dahai_id):
         return dahai_id in self.dahaiable_ids
-    
+
+    def is_tsumoneed(self, tsumo_id):
+        return tsumo_id in self.need_ids
+            
     def get_point(self):
         return self.point_info.points
 
