@@ -391,12 +391,12 @@ class Head34Value1SlModel(Model):
         gc.collect()
         
         acc = 100.0 * correct / (total + EPS)
-        result["train_dahai_acc"] = float(acc)
+        result["train/dahai_acc"] = float(acc)
         
-        result["train_loss"] = float(total_loss / batch_num)
-        result["train_dahai_loss"] = all_p_loss / batch_num
-        result["train_value_loss"] = all_v_loss / batch_num
-        result["reward.var - value_loss"] = float(np.var(rewards)) - result["train_value_loss"]
+        result["train/loss"] = float(total_loss / batch_num)
+        result["train/dahai_loss"] = all_p_loss / batch_num
+        result["train/value_loss"] = all_v_loss / batch_num
+        result["train/(reward.var - value_loss)÷reward.var"] = (float(np.var(rewards)) - result["train/value_loss"]) / np.var(rewards)
         
         return result
 
@@ -445,12 +445,12 @@ class Head34Value1SlModel(Model):
         gc.collect()
         
         acc = 100.0 * correct / (total + EPS)
-        result["test_dahai_acc"] = float(acc)
+        result["test/dahai_acc"] = float(acc)
         
-        result["test_loss"] = float(total_loss / batch_num)
-        result["test_dahai_loss"] = all_p_loss / batch_num
-        result["test_value_loss"] = all_v_loss / batch_num
-        result["test_reward.var - value_loss"] = float(np.var(rewards)) - result["test_value_loss"]
+        result["test/loss"] = float(total_loss / batch_num)
+        result["test/dahai_loss"] = all_p_loss / batch_num
+        result["test/value_loss"] = all_v_loss / batch_num
+        result["test/(reward.var - value_loss)÷reward.var"] = (float(np.var(rewards)) - result["test/value_loss"]) / np.var(rewards)
         
         return result
 
