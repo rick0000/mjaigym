@@ -17,7 +17,7 @@ class HorapointDfsFeature(Feature):
     """
     shanten_analysis = RsShantenAnalysis()
     target_points = [3900,7700,12000]
-    DEPTH = 2
+    DEPTH = 3
     
     YAKU_CH = len(YAKU_CHANNEL_MAP) * DEPTH # depth 1, depth 2, depth 3.
     POINT_CH = len(target_points) * DEPTH
@@ -166,22 +166,25 @@ class HorapointDfsFeature(Feature):
                     i_need_horas = [r for r in results if r.is_tsumoneed(i)]
                     if len(i_need_horas) == 0:
                         continue
-
+                    
                     yaku_dist_set = set()
+                    point_dist_set = set()
                     for hora in i_need_horas:
                         dist = hora.distance()
                         point = hora.get_point()
                         
                         for yaku in hora.get_yakus():
-                            yaku_dist_set.add((yaku, dist, point))
+                            yaku_dist_set.add((yaku, dist))
+                            point_dist_set.add((point, dist))
                     
-                    for (yaku, dist, point) in yaku_dist_set:
+                    for (yaku, dist) in yaku_dist_set:
                         # add yaku feature
                         if yaku in YAKU_CHANNEL_MAP:
                             target_channel = YAKU_CHANNEL_MAP[yaku] + ((dist-1) * len(YAKU_CHANNEL_MAP))
                             player_offset = from_player_view*cls.ONE_PLAYER_LENGTH
                             result[player_offset + target_channel,i,0] = 1
-                        
+
+                    for (point, dist) in point_dist_set:
                         # add hora point feature
                         for point_index, target_point in enumerate(cls.target_points):
                             if point >= target_point:
@@ -189,4 +192,3 @@ class HorapointDfsFeature(Feature):
                                 
                                 player_offset = from_player_view*cls.ONE_PLAYER_LENGTH
                                 result[player_offset + target_channel,i,0] = 1
-        
