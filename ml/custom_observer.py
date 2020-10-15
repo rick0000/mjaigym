@@ -76,11 +76,10 @@ class SampleCustomObserver(MjObserver):
             feature.calc(target_feature_area, state, id, oracle_enable_flag)
             start_index += feature_length
 
-        dfs_feature_area = np.zeros((HorapointDfsFeature.get_length(), 34, 1), dtype='int8')
+        dfs_feature_area = feature_area[start_index:start_index+HorapointDfsFeature.get_length()]
         HorapointDfsFeature.calc(dfs_feature_area, state, id, oracle_enable_flag, self._dfs)
-        dfs_appended = np.concatenate([feature_area, dfs_feature_area], axis=0)
-        gc.collect()
-        return dfs_appended
+        
+        return feature_area
 
     def _calc_on_other_dahai_feature(self, state, id, candidate_action, oracle_enable_flag):
         # ignore other dahai.
