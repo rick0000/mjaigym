@@ -134,3 +134,16 @@ class ActorCriticNet(nn.Module):
         
 
         return x, v
+
+    def forward_with_v_mid(self, x):
+        h = self.preproc(x)
+        h = self.res_blocks(h)
+        x = self.postproc(h)
+        x = x.view(x.size(0), -1)
+
+        v = self.v_post_proc(h)
+        v_mid = v.view(v.size(0), -1)
+        v = self.v_fc1(v_mid)
+        v = self.v_fc2(v)
+        v = self.v_out(v)
+        return x, v, v_mid,

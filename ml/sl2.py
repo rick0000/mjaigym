@@ -20,7 +20,6 @@ from tqdm import tqdm
 import multiprocessing
 from multiprocessing import Pool, Process, set_start_method, Queue
 
-
 from mjaigym.board.function.pai import Pai
 from mjaigym.board.mj_move import MjMove
 from mjaigym.mjson import Mjson
@@ -263,7 +262,7 @@ if __name__ == "__main__":
     model_config = ModelConfig(
             resnet_repeat=50,
             mid_channels=256,
-            learning_rate=5.0*10**-5,
+            learning_rate=10**-4,
             batch_size=256,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")

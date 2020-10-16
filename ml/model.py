@@ -291,6 +291,15 @@ class Head34Value1SlModel(Model):
             
         return sl_criterion_func
 
+    def predict(self, states):
+        self.model.eval()
+        with torch.no_grad():
+            inputs = torch.Tensor(states).float().to(DEVICE)
+            p, v, v_mid = self.model.forward_with_v_mid(inputs)
+            prob = self.softmax(p)
+        return prob.cpu().detach().numpy(), v.cpu().detach().numpy(), v_mid.cpu().detach().numpy()
+    
+
     def policy(self, states):
         self.model.eval()
         with torch.no_grad():

@@ -96,6 +96,9 @@ class DelayCalclatedObservation:
 
 
     def calclate(self):
+        if self.initialized:
+            return
+            
         self._dahai_observation = self.dahai_func()
         self._reach_observation = self.reach_func()
         self._chi_observations = self.chi_func()
