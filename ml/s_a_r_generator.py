@@ -133,7 +133,8 @@ def _analyze_one_game(args):
             # reward 1000.0 diff as loss 1.0
             discount_rewards = [d/1000.0 for d in discount_rewards]
 
-            reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i][actions[i]["actor"]], board_states[i])  for i in range(one_kyoku_length) if "actor" in actions[i]]
+            
+            reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i], board_states[i])  for i in range(one_kyoku_length) if "actor" in actions[i]]
             one_game_experience.extend(reward_dicided_experience)
 
         del env

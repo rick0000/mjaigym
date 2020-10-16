@@ -63,10 +63,17 @@ class StateActionRewards:
                     and experience.action["type"] == MjMove.dahai.value:
 
                     label = Pai.str_to_id(experience.action["pai"])
+
+                    player_view_oriented_rewards = [
+                        experience.reward[i],
+                        experience.reward[(i+1)%4],
+                        experience.reward[(i+2)%4],
+                        experience.reward[(i+3)%4],
+                    ]
                     self.dahai_queue.append(tuple((
                         player_state.dahai_observation,
                         label,
-                        experience.reward,
+                        player_view_oriented_rewards,
                     )))
                 
                     # create reach ...
@@ -230,8 +237,8 @@ class SlTrainer():
             lgs.logger_main.info(f"{key}:{value:.03f}")
         for key, value in result.items():
             self.tfboard_logger.write(key, value, game_count)
-        rs = np.array([r[2] for r in dahai_state_action_rewards])
-        lgs.logger_main.info(f"rewards var:{np.var(rs):.03f}, max:{rs.max():.03f}, min:{rs.min():.03f}, mean:{rs.mean():.03f}")
+        # rs = np.array([r[2] for r in dahai_state_action_rewards])
+        # lgs.logger_main.info(f"rewards var:{np.var(rs):.03f}, max:{rs.max():.03f}, min:{rs.min():.03f}, mean:{rs.mean():.03f}")
                 
 
     def evaluate_dahai(
@@ -247,8 +254,8 @@ class SlTrainer():
         
         for key, value in result.items():
             self.tfboard_logger.write(key, value, game_count)
-        rs = np.array([r[2] for r in dahai_state_action_rewards])
-        lgs.logger_main.info(f"rewards var:{np.var(rs):.03f}, max:{rs.max():.03f}, min:{rs.min():.03f}, mean:{rs.mean():.03f}")
+        # rs = np.array([r[2] for r in dahai_state_action_rewards])
+        # lgs.logger_main.info(f"rewards var:{np.var(rs):.03f}, max:{rs.max():.03f}, min:{rs.min():.03f}, mean:{rs.mean():.03f}")
         lgs.logger_main.info("-------------------------------------")
         
 

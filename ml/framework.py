@@ -98,7 +98,7 @@ class DelayCalclatedObservation:
     def calclate(self):
         if self.initialized:
             return
-            
+
         self._dahai_observation = self.dahai_func()
         self._reach_observation = self.reach_func()
         self._chi_observations = self.chi_func()
@@ -154,7 +154,7 @@ class Experience:
     """
     state:typing.Dict[int, SceneObservation] # key is 0~3, value is observation for player0~3
     action:typing.Dict
-    reward:float
+    reward:typing.List[float]
     board_state:BoardState
 
     def calclate(self):

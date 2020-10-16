@@ -118,7 +118,7 @@ class ActorCriticNet(nn.Module):
             )
         self.v_fc1 = nn.Linear(34*32, 1024)
         self.v_fc2 = nn.Linear(1024, 256)
-        self.v_out = nn.Linear(256, 1)
+        self.v_out = nn.Linear(256, 4)
 
     def forward(self, x):
         h = self.preproc(x)

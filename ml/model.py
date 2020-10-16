@@ -281,9 +281,8 @@ class Head34Value1SlModel(Model):
         return ActorCriticNet(in_channels, mid_channels, blocks_num)
     
     def get_criterion(self):
-
         def sl_criterion_func(outputs, targets, v_outputs, v_targets):
-            v_targets = torch.unsqueeze(v_targets, 1)
+            #v_targets = torch.unsqueeze(v_targets, 1)
             value_loss = self.mseloss(v_outputs, v_targets)
             policy_loss = self.celoss(outputs, targets)
             
@@ -361,6 +360,7 @@ class Head34Value1SlModel(Model):
         states = np.array([e[0] for e in experiences])
         actions = np.array([e[1] for e in experiences])
         rewards = np.array([e[2] for e in experiences])
+        
         
         # lgs.logger_main.info(f"start transfer states size:{sys.getsizeof(states)//(1024*1024)}MB")
         all_inputs = torch.Tensor(states).float().to(DEVICE)
