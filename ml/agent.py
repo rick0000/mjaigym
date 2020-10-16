@@ -335,9 +335,7 @@ class DahaiTrainableAgent(InnerAgent):
             for i in range(4):
                 player_state = experience.state[i]
                 
-                
                 if player_state.dahai_observation is not None\
-                    and not experience.board_state.reach[i]\
                     and experience.action["type"] == MjMove.dahai.value:
                     
                     label = Pai.str_to_id(experience.action["pai"])
