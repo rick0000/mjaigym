@@ -35,6 +35,7 @@ class SampleCustomObserver(MjObserver):
             RestPaiInViewFeature,
             TehaiFeature,
             TypeFeature,
+            LastTsumoFeature,
         ]
     OnTsumoFeaturesLength = sum([f.get_length() for f in OnTsumoFeatures]) + HorapointDfsFeature.get_length()
 

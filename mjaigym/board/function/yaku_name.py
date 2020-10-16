@@ -89,4 +89,19 @@ YAKU_CHANNEL_CONVERT_LIST = [
     YakuName.Ryanpeko,
     YakuName.Chiniso,
 ]
-YAKU_CHANNEL_MAP = dict(zip([v.value for v in YAKU_CHANNEL_CONVERT_LIST], range(len(YAKU_CHANNEL_CONVERT_LIST))))
+YAKU_CHANNEL_CONVERT_LIST = [v.value for v in YAKU_CHANNEL_CONVERT_LIST]
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "1")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "2")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "3")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "4")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "5")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "6")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "7")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "8")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "9")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "10")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "11")
+YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "12")
+
+YAKU_CHANNEL_MAP = dict(zip(YAKU_CHANNEL_CONVERT_LIST, range(len(YAKU_CHANNEL_CONVERT_LIST))))
+

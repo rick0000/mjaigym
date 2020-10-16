@@ -22,6 +22,7 @@ from .rest_tsumo_num_feature import RestTsumoNumFeature
 from .tehai_feature import TehaiFeature
 from .type_feature import TypeFeature
 from .horapoint_dfs_feature import HorapointDfsFeature
+from .last_tsumo_feature import LastTsumoFeature
 
 
 

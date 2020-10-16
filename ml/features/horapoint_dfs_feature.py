@@ -29,7 +29,6 @@ class HorapointDfsFeature(Feature):
         return cls.ONE_PLAYER_LENGTH * 4
     
 
-
     @classmethod
     def calc(cls, result:np.array, board_state:BoardState, player_id:int, oracle_feature_flag:bool, dfs=Dfs()):
         
@@ -136,8 +135,14 @@ class HorapointDfsFeature(Feature):
                         dist = hora.distance()
                         point = hora.get_point()
                         
-                        for yaku in hora.get_yakus():
-                            yaku_dist_set.add((yaku, dist))
+                        for yaku, yaku_fan in hora.get_yakus():
+                            if yaku == "dora":
+                                if yaku_fan > 12:
+                                    yaku_fan = 12
+                                for dora_num in range(1,yaku_fan+1):
+                                    yaku_dist_set.add((yaku+str(dora_num), dist))
+                            else:
+                                yaku_dist_set.add((yaku, dist))
                             point_dist_set.add((point, dist))
                     
                     for (yaku, dist) in yaku_dist_set:
@@ -160,8 +165,6 @@ class HorapointDfsFeature(Feature):
             else:
                 # ある牌を追加した際に和了可能な役か。
                 # 自分以外のプレーヤー（13枚系）の際に適用。
-                
-                
 
                 for i in range(34):
                     i_need_horas = [r for r in results if r.is_tsumoneed(i)]
@@ -173,11 +176,16 @@ class HorapointDfsFeature(Feature):
                     for hora in i_need_horas:
                         dist = hora.distance()
                         point = hora.get_point()
-                        
-                        for yaku in hora.get_yakus():
-                            yaku_dist_set.add((yaku, dist))
+                        for yaku, yaku_fan in hora.get_yakus():
+                            if yaku == "dora":
+                                if yaku_fan > 12:
+                                    yaku_fan = 12
+                                for dora_num in range(1,yaku_fan+1):
+                                    yaku_dist_set.add((yaku+str(dora_num), dist))
+                            else:
+                                yaku_dist_set.add((yaku, dist))
                             point_dist_set.add((point, dist))
-                    
+                        
                     for (yaku, dist) in yaku_dist_set:
                         # add yaku feature
                         if yaku in YAKU_CHANNEL_MAP:

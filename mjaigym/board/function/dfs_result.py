@@ -25,7 +25,7 @@ class DfsResult:
         return self.point_info.points
 
     def get_yakus(self):
-        return [y[0] for y in self.point_info.yakus]
+        return self.point_info.yakus
 
     def valid(self):
         try:
@@ -33,7 +33,7 @@ class DfsResult:
         except:
             import pdb; pdb.set_trace(); import time; time.sleep(1)
             print(self.point_info)
-            False
+            return False
 
     def distance(self):
         return sum([d for d in self.diff if d > 0])
