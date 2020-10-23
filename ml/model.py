@@ -294,9 +294,9 @@ class Head34Value1SlModel(Model):
         self.model.eval()
         with torch.no_grad():
             inputs = torch.Tensor(states).float().to(DEVICE)
-            p, v, v_mid = self.model.forward_with_v_mid(inputs)
+            p, v, v_mid, p_mid = self.model.forward_with_mid(inputs)
             prob = self.softmax(p)
-        return prob.cpu().detach().numpy(), v.cpu().detach().numpy(), v_mid.cpu().detach().numpy()
+        return prob.cpu().detach().numpy(), v.cpu().detach().numpy(), v_mid.cpu().detach().numpy(), p_mid.cpu().detach().numpy()
     
 
     def policy(self, states):
