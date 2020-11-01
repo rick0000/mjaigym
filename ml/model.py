@@ -18,7 +18,6 @@ from mjaigym.board import BoardState
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-
 EPS = 10**-9
 
 class Model(metaclass=ABCMeta):
@@ -307,45 +306,13 @@ class Head34Value1SlModel(Model):
             prob = self.softmax(policy)
         return prob.cpu().detach().numpy()
     
-    def estimate(self, states):
-        raise NotImplementedError()
-
-    def evaluate(self, experiences):
-        batch_num = len(experiences) // self.batch_size
-        if batch_num == 0:
-            return 0, 0
-
-        total_loss = 0.0
-        correct = 0
-        total = 0
-        states = np.array([e[0] for e in experiences])
-        actions = np.array([e[1] for e in experiences])
-        rewards = np.array([e[2] for e in experiences])
-        
-        # lgs.logger_main.info(f"start transfer states size:{sys.getsizeof(states)//(1024*1024)}MB")
-        all_inputs = torch.Tensor(states).float().to(DEVICE)
-        all_targets = torch.Tensor(actions).long().to(DEVICE)
-        all_v_targets = torch.Tensor(rewards).float().to(DEVICE)
-        # lgs.logger_main.info(f"start train {len(sampled_experiences)}records to {batch_num} minibatchs")
-        
-        for i in range(batch_num):
-            inputs = all_inputs[i*self.batch_size:(i+1)*self.batch_size]
-            targets = all_targets[i*self.batch_size:(i+1)*self.batch_size]
-            v_targets = all_v_targets[i*self.batch_size:(i+1)*self.batch_size]
-
-            self.model.eval()
-            with torch.no_grad():
-                outputs, v_outputs = self.model(inputs)
-                policy_loss, value_loss = self.criterion(outputs, targets, v_outputs, v_targets)
-                _, predicted = torch.max(outputs.data, 1)
-                correct += predicted.eq(targets.data).cpu().sum().detach()
-                total += len(states)
-                total_loss += loss.cpu().detach()
-
-            
-        gc.collect()    
-        acc = 100.0 * correct / (total + EPS)
-        return float(total_loss / batch_num), float(acc)
+    def estimate_by_states(self, states):
+        states = torch.Tensor(states).float().to(DEVICE)
+        self.model.eval()
+        with torch.no_grad():
+            outputs, v_outputs = self.model(states)
+            _, predicted = torch.max(outputs.data, 1)
+        return predicted, v_outputs
 
     def update(self, experiences):
 
