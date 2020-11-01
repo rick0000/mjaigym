@@ -34,7 +34,7 @@ class Model(metaclass=ABCMeta):
 
 
     def load(self, path):
-        state = torch.load(path)
+        state = torch.load(path, map_location=torch.device(DEVICE))
         self.set_state(state)
 
     def save(self, path):
