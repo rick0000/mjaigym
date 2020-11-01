@@ -12,8 +12,8 @@ class AnpaiFeature(Feature):
 
     @classmethod
     def calc(cls, result:np.array, board_state:BoardState, player_id:int, oracle_enable_flag:bool=False):
-        for i in range(4):
-            anpais = board_state.anpais[i]
+        for i_from_player, i_raw in cls.get_seat_order_ids(player_id):
+            anpais = board_state.anpais[i_raw]
             for pai in anpais:
-                result[i,pai.id] = 1
+                result[i_from_player, pai.id] = 1
 

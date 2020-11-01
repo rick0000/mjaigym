@@ -8,17 +8,14 @@ class LastDahaiFeature(Feature):
 
     @classmethod
     def get_length(cls)->int:
-        return 5
+        return 4
 
     @classmethod
     def calc(cls, result:np.array, board_state:BoardState, player_id:int, oracle_enable_flag:bool=False):
         if board_state.previous_action["type"] != MjMove.dahai.value:
             return
 
-        last_dahai_pai = Pai.from_str(board_state.previous_action['pai'])
-        result[0,last_dahai_pai.id] = 1
-
         last_dahai_player = board_state.previous_action['actor']
         diff = (4 + player_id - last_dahai_player) % 4
-        result[1+diff, :] = 1
+        result[diff, :] = 1
         
