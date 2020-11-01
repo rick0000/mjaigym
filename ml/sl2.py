@@ -119,7 +119,6 @@ class SlTrainer():
 
     def train_loop(self, agent, env, load_model=None):
 
-
         processses = []
         # run file glob process
         
@@ -191,7 +190,6 @@ class SlTrainer():
         try:
             lgs.logger_main.info("load cached test data")
             return joblib.load(cache_file_name)
-            pass
         except:
             lgs.logger_main.info("failed to load")
             pass
@@ -214,7 +212,7 @@ class SlTrainer():
             sampling_rate=0.05,
             reward_discount_rate=0.99
         )
-        test_s_a_rs_generator.start(env, multiprocessing.cpu_count())
+        test_s_a_rs_generator.start(env, 1)
         
         # prepare test data (refactor to function)
         test_s_a_rs = StateActionRewards.create_empty(test_size)
@@ -267,9 +265,9 @@ if __name__ == "__main__":
     log_dir ="./output/logs"
     session_name = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     model_config = ModelConfig(
-            resnet_repeat=50,
+            resnet_repeat=10,
             mid_channels=256,
-            learning_rate=10**-5,
+            learning_rate=10**-4,
             batch_size=256,
         )
     model_config.save(Path(log_dir)/session_name/"config.yaml")

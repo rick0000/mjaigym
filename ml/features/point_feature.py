@@ -15,7 +15,7 @@ class PointFeature(Feature):
     @classmethod
     def calc(cls, result:np.array, board_state:BoardState, player_id:int, oracle_enable_flag:bool=False):
         scores = board_state.scores
-        for player_id, raw_id in cls.get_seat_order_ids(player_id):
+        for i_from_player, raw_id in cls.get_seat_order_ids(player_id):
             score = scores[raw_id]
             if score > 79000:
                 score = 79000
@@ -23,7 +23,7 @@ class PointFeature(Feature):
                 score = 0
             score_index = score // 1000
 
-            start_index = cls.ONE_PLAYER_LENGTH * player_id
+            start_index = cls.ONE_PLAYER_LENGTH * i_from_player
             result[start_index+score_index,:,:] = 1
 
     

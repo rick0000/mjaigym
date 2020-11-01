@@ -14,7 +14,7 @@ class FuroRedDoraFeature(Feature):
 
     @classmethod
     def calc(cls, result:np.array, board_state:BoardState, player_id:int, oracle_enable_flag:bool=False):
-        for target_player_id, raw_id in cls.get_seat_order_ids(player_id):
+        for i_from_player, raw_id in cls.get_seat_order_ids(player_id):
             num = board_state.furo_open_red_dora_nums[raw_id]
-            start_index = cls.RED_DORA_MAX * target_player_id
+            start_index = cls.RED_DORA_MAX * i_from_player
             result[start_index:num,:,:] = 1

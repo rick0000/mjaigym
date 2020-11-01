@@ -16,7 +16,7 @@ class HorapointDfsFeature(Feature):
     """this class has unusual interface, because handling dfs object cache.
     """
     shanten_analysis = RsShantenAnalysis()
-    target_points = [3900,7700,12000]
+    target_points = [1000, 2000, 3900, 7700, 12000, 16000, 18000, 24000, 32000]
     DEPTH = 2
     
     YAKU_CH = len(YAKU_CHANNEL_MAP) * DEPTH # depth 1, depth 2, depth 3.
@@ -32,17 +32,17 @@ class HorapointDfsFeature(Feature):
     @classmethod
     def calc(cls, result:np.array, board_state:BoardState, player_id:int, oracle_feature_flag:bool, dfs=Dfs()):
         
-        for from_player_view, seat_alined_player_id in cls.get_seat_order_ids(player_id):
+        for i_from_player, seat_alined_player_id in cls.get_seat_order_ids(player_id):
             
             if not oracle_feature_flag:
-                if from_player_view != 0:
+                if i_from_player != 0:
                     # print("skip, oracle feature disabled.")
                     continue
 
             player_tehai = board_state.tehais[seat_alined_player_id]
 
             # # 比較のためターチャの特徴量は無視
-            # if from_player_view != 0:
+            # if i_from_player != 0:
             #     continue
 
             nums = [0] * 34
@@ -121,7 +121,7 @@ class HorapointDfsFeature(Feature):
                 continue
 
 
-            if from_player_view == 0:
+            if i_from_player == 0:
                 # ある牌を打牌(マイナス)した際に和了可能な役か。
                 # プレーヤー（14枚形）の際に適用。
                 for i in range(34):
@@ -149,7 +149,7 @@ class HorapointDfsFeature(Feature):
                         # add yaku feature
                         if yaku in YAKU_CHANNEL_MAP:
                             target_channel = YAKU_CHANNEL_MAP[yaku] + ((dist-1) * len(YAKU_CHANNEL_MAP))
-                            player_offset = from_player_view*cls.ONE_PLAYER_LENGTH
+                            player_offset = i_from_player*cls.ONE_PLAYER_LENGTH
                             result[player_offset + target_channel,i,0] = 1
 
                     for (point, dist) in point_dist_set:
@@ -158,7 +158,7 @@ class HorapointDfsFeature(Feature):
                             if point >= target_point:
                                 target_channel = cls.YAKU_CH + point_index + (dist-1) * len(cls.target_points)
                                 
-                                player_offset = from_player_view*cls.ONE_PLAYER_LENGTH
+                                player_offset = i_from_player*cls.ONE_PLAYER_LENGTH
                                 result[player_offset + target_channel,i,0] = 1
                     
 
@@ -190,7 +190,7 @@ class HorapointDfsFeature(Feature):
                         # add yaku feature
                         if yaku in YAKU_CHANNEL_MAP:
                             target_channel = YAKU_CHANNEL_MAP[yaku] + ((dist-1) * len(YAKU_CHANNEL_MAP))
-                            player_offset = from_player_view*cls.ONE_PLAYER_LENGTH
+                            player_offset = i_from_player*cls.ONE_PLAYER_LENGTH
                             result[player_offset + target_channel,i,0] = 1
 
                     for (point, dist) in point_dist_set:
@@ -199,5 +199,5 @@ class HorapointDfsFeature(Feature):
                             if point >= target_point:
                                 target_channel = cls.YAKU_CH + point_index + (dist-1) * len(cls.target_points)
                                 
-                                player_offset = from_player_view*cls.ONE_PLAYER_LENGTH
+                                player_offset = i_from_player*cls.ONE_PLAYER_LENGTH
                                 result[player_offset + target_channel,i,0] = 1

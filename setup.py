@@ -12,6 +12,7 @@ setup(
         "dataclasses",
         "tensorboard",
         "torch",
+        "pyyaml",
     ],
     include_package_data=True,
     package_data={
