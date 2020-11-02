@@ -55,23 +55,23 @@ class StateActionRewards:
 
     def register_experience_to_sars(self, experiences:deque):
         for experience in experiences:
-            for i in range(4):
-                player_state = experience.state[i]
+            # create dahai
+            if experience.action["type"] == MjMove.dahai.value:                
+                dahai_actor = experience.action["actor"]
+                player_state = experience.state[dahai_actor]
                 # create dahai s_a_r
                 if player_state.dahai_observation is not None\
-                    and not experience.board_state.reach[i]\
-                    and experience.action["type"] == MjMove.dahai.value:
+                    and not experience.board_state.reach[dahai_actor]:
 
                     label = Pai.str_to_id(experience.action["pai"])
-
                     self.dahai_queue.append(tuple((
                         player_state.dahai_observation,
                         label,
-                        reward,
+                        experience.reward, # already set to actor oriented align reward
                     )))
-                
-                    # create reach ...
-    
+            
+            # create reach ...
+
 
 
 class SlTrainer():
