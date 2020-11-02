@@ -282,7 +282,7 @@ class Head34Value1SlModel(Model):
     def get_criterion(self):
         def sl_criterion_func(outputs, targets, v_outputs, v_targets):
             #v_targets = torch.unsqueeze(v_targets, 1)
-            value_loss = self.mseloss(v_outputs, v_targets)
+            value_loss = self.mseloss(v_outputs, v_targets) * 10
             policy_loss = self.celoss(outputs, targets)
             
             return policy_loss, value_loss

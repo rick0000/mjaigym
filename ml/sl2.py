@@ -262,10 +262,10 @@ class SlTrainer():
 if __name__ == "__main__":
     train_dir = "/data/mjson/train"
     test_dir = "/data/mjson/test"
-    log_dir ="./output/logs"
+    log_dir ="/mnt/sdc/experiments/output/logs"
     session_name = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     model_config = ModelConfig(
-            resnet_repeat=10,
+            resnet_repeat=20,
             mid_channels=256,
             learning_rate=10**-4,
             batch_size=256,
