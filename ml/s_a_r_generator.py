@@ -128,19 +128,18 @@ def _analyze_one_game(args):
             last_reward = np.array(rewards[-1])
             one_kyoku_length = len(kyoku.kyoku_mjsons)
             
-            
             reversed_discount_rewards = [last_reward * math.pow(reward_discount_rate, i) for i in range(one_kyoku_length)]
-            # ignore discount
-            # reversed_discount_rewards = [last_reward for i in range(one_kyoku_length)]
             discount_rewards = list(reversed(reversed_discount_rewards))
             
             # reward 1000.0 diff as loss 1.0
             discount_rewards = [r/1000.0 for r in discount_rewards]
 
-            # rotate reward as action player is 0
-            discount_rewards = [convert_align(r, a["actor"] if "actor" in a else 0) for (a,r) in zip(actions, discount_rewards)]
-
-            reward_dicided_experience = [Experience(states[i], actions[i], discount_rewards[i], board_states[i])  for i in range(one_kyoku_length) if "actor" in actions[i]]
+            reward_dicided_experience = [
+                Experience(
+                    states[i],
+                    actions[i],
+                    convert_align(discount_rewards[i], actions[i]["actor"]),
+                    board_states[i]) for i in range(one_kyoku_length) if "actor" in actions[i]]
             one_game_experience.extend(reward_dicided_experience)
 
         del env
@@ -153,7 +152,21 @@ def _analyze_one_game(args):
         print(traceback.format_exc())
         return []
 
+
 def convert_align(vs, viewpoint_id):
+    """
+    rotate reward as action player is 0
+    
+    vs[0],
+    vs[1],
+    vs[2],
+    vs[3],
+    →
+    vs[viewpoint_id],
+    vs[viewpoint_id + 1],
+    vs[viewpoint_id + 2],
+    vs[viewpoint_id + 3],
+    """
     return [
         vs[(viewpoint_id+0) % 4],
         vs[(viewpoint_id+1) % 4],
