@@ -70,6 +70,9 @@ class ServerGame:
                 dealer_message = self.board.consume_pending_message()
             else:
                 dealer_message = self.board.step(self.message_buf)
+            # add possible actions
+            dealer_message["possible_actions"] = self.board.possible_actions
+            print(f"{dealer_message}")
 
             self.message_buf.clear()
             
@@ -93,24 +96,24 @@ class ServerGame:
 
 
     def message_in_view(self, message, player_id):
+        rewritee_message = copy.deepcopy(message)
         if message['type'] not in [MjMove.start_game.value, MjMove.start_kyoku.value, MjMove.tsumo.value]:
-            return message
+            return rewritee_message
 
-        rewrite_message = copy.deepcopy(message)
         if message['type'] == MjMove.start_game.value:
             for i in range(4):
-                rewrite_message['id'] = i
+                rewritee_message['id'] = i
 
         elif message['type'] == MjMove.start_kyoku.value:
             for i in range(4):
                 if i != player_id:
-                    rewrite_message['tehais'][i] = ["?"] * len(rewrite_message['tehais'][i])
+                    rewritee_message['tehais'][i] = ["?"] * len(rewritee_message['tehais'][i])
 
         elif message['type'] == MjMove.tsumo.value:
             if message['actor'] != player_id:
-                rewrite_message['pai'] = '?'
+                rewritee_message['pai'] = '?'
 
-        return rewrite_message
+        return rewritee_message
 
 
     def send_message(self, message, player_id):
