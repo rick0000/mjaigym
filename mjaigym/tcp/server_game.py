@@ -70,8 +70,6 @@ class ServerGame:
                 dealer_message = self.board.consume_pending_message()
             else:
                 dealer_message = self.board.step(self.message_buf)
-            # add possible actions
-            dealer_message["possible_actions"] = self.board.possible_actions
             
 
             self.message_buf.clear()
