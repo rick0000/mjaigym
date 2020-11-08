@@ -72,7 +72,7 @@ class ServerGame:
                 dealer_message = self.board.step(self.message_buf)
             # add possible actions
             dealer_message["possible_actions"] = self.board.possible_actions
-            print(f"{dealer_message}")
+            
 
             self.message_buf.clear()
             
