@@ -110,7 +110,7 @@ class HoraRs():
     
     @property
     def points(self):
-        return self._points[3]
+        return self._points[2]
     
     @property
     def yakus(self):
@@ -122,11 +122,11 @@ class HoraRs():
 
     @property
     def oya_payment(self):
-        return self._points[4]
+        return self._points[3]
 
     @property
     def ko_payment(self):
-        return self._points[5]
+        return self._points[4]
 
     def count_doras(self, target_doras):
         dora_sum = 0
