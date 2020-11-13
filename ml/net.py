@@ -144,8 +144,8 @@ class ActorCriticNet(nn.Module):
         x = x.view(x.size(0), -1)
 
         v = self.v_post_proc(res_out)
-        v_mid = v.view(v.size(0), -1)
-        v = self.v_fc1(v_mid)
-        v = self.v_fc2(v)
-        v = self.v_out(v)
+        v = v.view(v.size(0), -1)
+        v = self.v_fc1(v)
+        v_mid = self.v_fc2(v)
+        v = self.v_out(v_mid)
         return x, v, v_mid, p_mid
