@@ -165,10 +165,10 @@ class BoardState():
         """
         return self.state['restpai_in_view']
     @property
-    def shanten(self)->List[int]:
+    def shantens(self)->List[int]:
         """各プレーヤーのシャンテン数
         """
-        return self.state['shanten']
+        return self.state['shantens']
         
 
 
@@ -209,7 +209,7 @@ class BoardState():
                 masked['tehais'][i] = [UNKNOWN_PAI] * len(masked['tehais'][i])
                 masked['red_dora_nums'][i] = masked['furo_open_red_dora_nums'][i]
                 masked['restpai_in_view'][i] = [4] * 34
-                masked['shanten'][i] = None
+                masked['shantens'][i] = None
 
         return BoardState(**masked)
 
