@@ -145,6 +145,7 @@ class Board(object):
             "red_dora_nums":[p.red_dora_num for p in self.players],
             "furo_open_red_dora_nums":[p.furo_open_red_dora_num for p in self.players],
             "restpai_in_view":[copy.copy(view) for view in self.rest_pai_view],
+            "shantens":[p.shanten for p in self.players],
         })
 
 
