@@ -24,6 +24,10 @@ class TenpaiAnalysis:
             return
 
         for waiting_id in range(34):
+            if self.tehai[waiting_id] == 4:
+                # already use all pais
+                continue
+
             self.tehai[waiting_id] += 1
             if self.shanten_analysis.calc_shanten(self.tehai, self.furo_num) == -1:
                 self.waiting.append(Pai.from_id(waiting_id))
@@ -38,15 +42,8 @@ class TenpaiAnalysis:
         if self.shanten != 0:
             return False
         
-        # remove already use all pai case.
-        any_not_use_4 = False
-        for wp in self.waiting:
-            if self.tehai[wp.id] < 4:
-                any_not_use_4 = True
-                break
-
         # assert self.shanten.shanten == 0
-        return len(self.pais) % 3 != 1 or any_not_use_4
+        return (len(self.pais) % 3 != 1) or (len(self.waited_pais) > 0)
         
     @property
     def waited_pais(self):
