@@ -13,12 +13,12 @@ from collections import defaultdict
 class Player():
     def __init__(self, board, seat=None):
         self.id = seat
-        self.score = 25000
         self.board = board
         self.reset()
         self.shanten_analysis = RsShantenAnalysis()
 
     def reset(self):
+        self.score = 25000
         self.tehais = []
         self.furos = []
         self.ho = [] # 鳴かれた牌を含まない

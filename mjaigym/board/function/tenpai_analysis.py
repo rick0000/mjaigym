@@ -55,7 +55,7 @@ class TenpaiAnalysis:
 
 if __name__ == "__main__":
     pais = Pai.from_list([
-        "1p","1p","1p","2m","3m","4m","5m","6m","7m","8m","9m","9m","9m",
+        "1m","1m","1m","1p","5m","6m","7m","5p","6p","7p","9m","9m","9m",
     ])
     ana = TenpaiAnalysis(pais)
     print(ana.tenpai)
