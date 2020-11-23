@@ -157,7 +157,7 @@ class Board(object):
             self._current_seed = np.random.randint(low=0, high=os.sys.maxsize)
 
         
-        for player in self.players
+        for player in self.players:
             player.reset()
 
         self.dealer_history = []
