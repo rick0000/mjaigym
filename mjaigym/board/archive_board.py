@@ -10,6 +10,7 @@ import pprint
 from typing import List
 import copy
 
+
 class ArchiveBoard(Board):
     def __init__(self, scene_mjsons=None, **args):
         super().__init__()
@@ -17,20 +18,21 @@ class ArchiveBoard(Board):
             scene_mjsons = []
 
         self._current_seed = self._raw_seed
-        self.rest_nums  = np.array([4]*34)
-        
+        self.rest_nums = np.array([4]*34)
+
         self.dealer_history = []
         self.renponse_history = []
         self.chicha = None
         self.last = False
-        
+
         self.valid_move_history = []
-        
+
         for mjson in scene_mjsons:
             self._paifu_step(mjson)
             self.dealer_history.append(mjson)
             self.valid_move_history.append(self.possible_actions)
-            
+            self.restnum_update(mjson)
+
     def step(self, action):
         self._paifu_step(action)
         self.dealer_history.append(action)
@@ -41,7 +43,7 @@ class ArchiveBoard(Board):
         if 'actor' in action:
             self.actor = action['actor']
         action_type = action['type']
-        
+
         if 'scores' in action:
             self.scores = action['scores']
 
@@ -53,7 +55,7 @@ class ArchiveBoard(Board):
             self.bakaze = action['bakaze']
             self.kyoku = action['kyoku']
             self.honba = action['honba']
-            if 'kyotaku' in action: 
+            if 'kyotaku' in action:
                 self.kyotaku = action['kyotaku']
             self.oya = action['oya']
 
@@ -63,7 +65,6 @@ class ArchiveBoard(Board):
             for tehai in action['tehais']:
                 for p in tehai:
                     self.yama.paifu_tsumo(p)
-
 
             self.dora_markers = [action['dora_marker']]
             self.yama.paifu_open_doramarker(action['dora_marker'])
@@ -80,17 +81,15 @@ class ArchiveBoard(Board):
 
         elif action_type in [MjMove.chi.value, MjMove.pon.value, MjMove.daiminkan.value, MjMove.kakan.value, MjMove.ankan.value]:
             self.first_turn = False
-            
+
         elif action_type == MjMove.dora.value:
             self.yama.paifu_open_doramarker(action['dora_marker'])
             self.dora_markers.append(action['dora_marker'])
-        
+
         elif action_type == MjMove.reach_accepted.value:
             self.kyotaku += 1
         elif action_type == MjMove.hora.value:
             self.kyotaku = 0
-        
 
         for i in range(4):
             self.players[i].update_state(action)
-            
