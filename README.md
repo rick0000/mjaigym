@@ -15,6 +15,10 @@ https://colab.research.google.com/drive/1mDlIQU06frYpvpgNS5-44Ur3lVhr1nrt?usp=sh
 replay mjson file
 https://drive.google.com/file/d/1CIjYEIbuLfsXvKuw7OQfdzpOQPo3EXHC/view?usp=sharing
 
+supervised learning sample
+https://github.com/rick0000/mjaigym_ml
+
 
 ## NOTE
 This library does **not** work on Windows and Mac OS currently.
+
