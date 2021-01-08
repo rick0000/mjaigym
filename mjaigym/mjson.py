@@ -14,9 +14,11 @@ class Mjson():
             with open(path, 'rt') as f:
                 mjsons = [json.loads(l) for l in f.read().splitlines() if l]
 
-            scores = [0, 0, 0, 0]
+            scores = [25000, 25000, 25000, 25000]
             pai = '?'
             for line in mjsons:
+
+                # update scores
                 if 'scores' in line:
                     scores = line['scores']
                 elif 'deltas' in line:
@@ -28,13 +30,14 @@ class Mjson():
                 if 'pai' in line:
                     pai = line['pai']
 
+                # add scores to line
                 if line['type'] == 'hora':
                     if 'scores' not in line:
                         line['scores'] = scores
                     if 'pai' not in line:
                         line['pai'] = pai
-
-                if line['type'] in ['ryukyoku', 'end_game']:
+    
+                if line['type'] in ['start_kyoku', 'reach_accepted', 'ryukyoku', 'end_game']:
                     if 'scores' not in line:
                         line['scores'] = scores
 
