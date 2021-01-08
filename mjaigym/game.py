@@ -19,7 +19,6 @@ class Game():
         self.names = ['p0','p1','p2','p3']
         kyoku_lines = []
         kyoku_initial_scores = [25000,25000,25000,25000]
-        next_kyoku_initial_scores = [25000,25000,25000,25000]
         final_lines = list(filter(lambda x: x['type'] == 'hora' or x['type'] == 'ryukyoku', mjsons))
         self.final_lines = final_lines
 
@@ -45,11 +44,9 @@ class Game():
                     self.names = line['names']
 
             elif line['type'] == 'start_kyoku':
-                kyoku_initial_scores = next_kyoku_initial_scores
+                kyoku_initial_scores = line['scores']
                 last_bakaze = line['bakaze']
                 last_kyoku_id = line['kyoku']
-            elif line['type'] == 'ryukyoku' or line['type'] == 'hora':
-                next_kyoku_initial_scores = line['scores']
             elif line['type'] == 'end_kyoku':
                 kyoku = Kyoku(kyoku_lines, kyoku_initial_scores)
                 self.kyokus.append(kyoku)
