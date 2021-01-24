@@ -4,6 +4,8 @@ import subprocess
 from pathlib import Path
 from multiprocessing import Pool
 import multiprocessing
+from tqdm import tqdm
+from collections import deque
 
 
 def convert(mp):
@@ -35,6 +37,7 @@ def convert(mp):
 
     if proc.stdout.readline():
         # have error message
+        # output_host.unlink()
         return 1
     else:
         return 0
@@ -45,18 +48,22 @@ def convert(mp):
 def main(mjlog_dir):
     mjlog_dir = Path(mjlog_dir)
     mjson_paths = Path(mjlog_dir).glob("201212/*.mjlog")
-    mjson_paths = [(mjlog_dir, p) for p in mjson_paths]
-    mjson_paths = mjson_paths[0:10]
+    mjson_paths = sorted([(mjlog_dir, p) for p in mjson_paths])
+    mjson_paths = mjson_paths
     print(len(mjson_paths))
-    with Pool(multiprocessing.cpu_count()) as p:
-        result = p.map(convert, mjson_paths)
+    pool = Pool(processes=multiprocessing.cpu_count())
+    with tqdm(total=len(mjson_paths)) as t:
+        results = deque()
+        for result in pool.imap_unordered(convert, mjson_paths):
+            results.append(result)
+            t.update(1)
 
     # for mjson_path in mjson_paths:
     #     convert(mjson_path)
     #     exit(0)
 
     print(
-        f"converted:{len([r for r in result if r == 0])} files, error:{len([r for r in result if r == 1])}")
+        f"converted:{len([r for r in results if r == 0])} files, error:{len([r for r in results if r == 1])}")
 
 
 if __name__ == "__main__":
