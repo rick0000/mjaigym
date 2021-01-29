@@ -1,10 +1,10 @@
 FROM ubuntu:18.04
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
- git \
- ruby2.5-dev \
- build-essential patch ruby-dev zlib1g-dev liblzma-dev 
+    && apt-get install -y --no-install-recommends \
+    git \
+    ruby2.5-dev \
+    build-essential patch ruby-dev zlib1g-dev liblzma-dev 
 
 RUN gem install json:2.3.1 
 RUN gem install nokogiri:1.10.10 
@@ -31,6 +31,7 @@ RUN gem install --local mjai-manue-0.0.2.gem
 
 WORKDIR /mjai/mjai/
 ADD run_manue.sh run_manue.sh
+ADD convert.sh convert.sh
 
 RUN chmod 755 -R /mjai/
 RUN chown manue:manue -R /mjai/

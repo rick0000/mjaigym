@@ -8,37 +8,7 @@ from tqdm import tqdm
 from collections import deque
 
 
-def is_gzip(mp):
-    mjlog_dir, mjson_path = mp
-    # bakup作成
-    # gzipファイル作成
-    proc = subprocess.Popen(
-        f"gzip -t {mjson_path}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    ok = proc.stdout.read()
-    error = proc.stderr.read()
-    return len(error) == 0
-
-
-def to_gzip(mp):
-
-    mjlog_dir, mjson_path = mp
-
-    print(mjson_path)
-    # bakup作成
-    # gzipファイル作成
-    proc = subprocess.Popen(
-        f"cp {mjson_path} {mjson_path}.rawmjlog", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    new_path = mjlog_dir / mjson_path.stem
-    proc = subprocess.Popen(
-        f"mv {mjson_path} {new_path}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    proc = subprocess.Popen(
-        f"gzip -S .mjlog {new_path}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-
 def convert(mp):
-    if not is_gzip(mp):
-        to_gzip(mp)
 
     mjlog_dir, mjson_path = mp
     relative = mjson_path.relative_to(mjlog_dir)
@@ -60,8 +30,7 @@ def convert(mp):
 
     command = f"docker run --rm -v {input_host.absolute()}:/input "\
         + f" -v {output_host_base.absolute()}:{output_container.absolute()} manue:dev " \
-        + f" mjai convert {input_path.absolute()} {output_path.absolute()}"
-
+        + f" /bin/bash convert.sh {input_path.absolute()} {output_path.absolute()}"  # + f" mjai convert {input_path.absolute()} {output_path.absolute()}"
     proc = subprocess.Popen(command, shell=True,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     proc.wait()
@@ -82,20 +51,12 @@ def main(mjlog_dir):
     mjson_paths = sorted([(mjlog_dir, p) for p in mjson_paths])
     mjson_paths = mjson_paths
     print(len(mjson_paths))
+    results = deque()
     pool = Pool(processes=multiprocessing.cpu_count())
     with tqdm(total=len(mjson_paths)) as t:
-        results = deque()
         for result in pool.imap_unordered(convert, mjson_paths):
             results.append(result)
             t.update(1)
-    # for m in mjson_paths:
-    #     error = is_gzip(m)
-    #     print(error)
-
-    #     convert(m)
-    #     # for mjson_path in mjson_paths:
-    #     #     convert(mjson_path)
-    #     #     exit(0)
 
     print(
         f"converted:{len([r for r in results if r == 0])} files, error:{len([r for r in results if r == 1])}")
