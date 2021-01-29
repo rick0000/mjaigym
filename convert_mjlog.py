@@ -8,7 +8,38 @@ from tqdm import tqdm
 from collections import deque
 
 
+def is_gzip(mp):
+    mjlog_dir, mjson_path = mp
+    # bakup作成
+    # gzipファイル作成
+    proc = subprocess.Popen(
+        f"gzip -t {mjson_path}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    ok = proc.stdout.read()
+    error = proc.stderr.read()
+    return len(error) == 0
+
+
+def to_gzip(mp):
+
+    mjlog_dir, mjson_path = mp
+
+    print(mjson_path)
+    # bakup作成
+    # gzipファイル作成
+    proc = subprocess.Popen(
+        f"cp {mjson_path} {mjson_path}.rawmjlog", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    new_path = mjlog_dir / mjson_path.stem
+    proc = subprocess.Popen(
+        f"mv {mjson_path} {new_path}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    proc = subprocess.Popen(
+        f"gzip -S .mjlog {new_path}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
 def convert(mp):
+    if not is_gzip(mp):
+        to_gzip(mp)
+
     mjlog_dir, mjson_path = mp
     relative = mjson_path.relative_to(mjlog_dir)
     input_host = mjlog_dir
@@ -37,7 +68,6 @@ def convert(mp):
 
     if proc.stdout.readline():
         # have error message
-        # output_host.unlink()
         return 1
     else:
         return 0
@@ -47,7 +77,8 @@ def convert(mp):
 @click.option('--mjlog_dir', type=str)
 def main(mjlog_dir):
     mjlog_dir = Path(mjlog_dir)
-    mjson_paths = Path(mjlog_dir).glob("201212/*.mjlog")
+    # mjson_paths = Path(mjlog_dir).glob("201212/*.mjlog")
+    mjson_paths = Path(mjlog_dir).glob("**/*.mjlog")
     mjson_paths = sorted([(mjlog_dir, p) for p in mjson_paths])
     mjson_paths = mjson_paths
     print(len(mjson_paths))
@@ -57,10 +88,14 @@ def main(mjlog_dir):
         for result in pool.imap_unordered(convert, mjson_paths):
             results.append(result)
             t.update(1)
+    # for m in mjson_paths:
+    #     error = is_gzip(m)
+    #     print(error)
 
-    # for mjson_path in mjson_paths:
-    #     convert(mjson_path)
-    #     exit(0)
+    #     convert(m)
+    #     # for mjson_path in mjson_paths:
+    #     #     convert(mjson_path)
+    #     #     exit(0)
 
     print(
         f"converted:{len([r for r in results if r == 0])} files, error:{len([r for r in results if r == 1])}")
