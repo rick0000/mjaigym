@@ -7,6 +7,8 @@ import multiprocessing
 from tqdm import tqdm
 from collections import deque
 
+DEBUG = False
+
 
 def convert(mp):
 
@@ -25,16 +27,16 @@ def convert(mp):
         f"{mjson_path.stem}.mjson"
     output_path = output_container / output_relative
     output_host = output_host_base / output_relative
-    print(output_path.absolute())
+    # print(output_path.absolute())
     if os.path.isfile(output_host.absolute()):
         if os.path.getsize(output_host.absolute()) > 0:
-            print(f"aleady exist:{output_host.absolute()}")
+            # print(f"aleady exist:{output_host.absolute()}")
             return 0
 
     output_host.parent.mkdir(parents=True, exist_ok=True)
 
     command = f"docker run --rm -v {input_host.absolute()}:/input "\
-        + f" -v {output_host_base.absolute()}:{output_container.absolute()} manue:dev " \
+        + f" -v {output_host_base.absolute()}:{output_container.absolute()}:delegated manue:dev " \
         + f" /bin/bash convert.sh {input_path.absolute()} {output_path.absolute()}"  # + f" mjai convert {input_path.absolute()} {output_path.absolute()}"
     proc = subprocess.Popen(command, shell=True,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -58,15 +60,16 @@ def main(mjlog_dir):
     print(len(mjson_paths))
     results = deque()
 
-    if False:
+    if DEBUG:
+        for m in mjson_paths:
+            results.append(convert(m))
+    else:
         pool = Pool(processes=multiprocessing.cpu_count())
         with tqdm(total=len(mjson_paths)) as t:
             for result in pool.imap_unordered(convert, mjson_paths):
                 results.append(result)
                 t.update(1)
-    else:
-        for m in mjson_paths:
-            results.append(convert(m))
+
     print(
         f"converted:{len([r for r in results if r == 0])} files, error:{len([r for r in results if r == 1])}")
 
