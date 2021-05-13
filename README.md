@@ -20,9 +20,10 @@ https://github.com/rick0000/mjaigym_ml
 
 
 ## NOTE
-This library does **not** work on Windows and Mac OS,
-works on Ubuntu 18.04, 20.04, Google Colaboratory.
-PyTorch version is 1.6.x (upper PyTorch versions are not checked)
+This library works on Ubuntu 18.04, 20.04, Google Colaboratory.
+This library does **not** work on Windows and Mac OS.
+
+
 
 If you only use mjaigym module like as follow sample, PyTorch is not needed. 
 Delete torch from setup.py.
