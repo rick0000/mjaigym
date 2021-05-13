@@ -11,7 +11,7 @@ setup(
         "tqdm",
         "dataclasses",
         "tensorboard",
-        "torch",
+        "torch==1.6.0",
         "pyyaml",
     ],
     include_package_data=True,
