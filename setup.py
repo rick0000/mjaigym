@@ -10,8 +10,6 @@ setup(
         "joblib",
         "tqdm",
         "dataclasses",
-        "tensorboard",
-        "torch==1.6.0",
         "pyyaml",
     ],
     include_package_data=True,
