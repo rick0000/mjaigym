@@ -1,5 +1,7 @@
 from mjaigym.board.function.pai import Pai
-class Mentsu():
+
+
+class Mentsu:
     def __init__(self, pais, type, visibility):
         self.pais = sorted(pais, key=Pai.sort)
         self.type = type

@@ -1,16 +1,17 @@
-from typing import List, Dict
-from dataclasses import dataclass
-import numpy as np
 from collections import deque
+from dataclasses import dataclass
+from typing import Dict, List
+
+import numpy as np
 
 
 @dataclass
 class Dataset:
-    """(state, action, reward) dataset
-    """
-    observes:deque
-    actions:deque
-    rewards:deque
+    """(state, action, reward) dataset"""
+
+    observes: deque
+    actions: deque
+    rewards: deque
 
     @classmethod
     def create_empty(cls):
@@ -19,6 +20,7 @@ class Dataset:
             actions=deque(),
             rewards=deque(),
         )
+
     def append(self, observe, action, reward):
         self.observes.append(observe)
         self.actions.append(action)
@@ -35,11 +37,13 @@ class Dataset:
     def __len__(self):
         return self.observes.__len__()
 
+
 @dataclass
 class Datasets:
-    """ model train dataset
+    """model train dataset
     for rainforced learning, use only dahai dataset.
     """
+
     dahai_dataset: Dataset
     reach_dataset: Dataset
     chi_dataset: Dataset
@@ -62,11 +66,10 @@ class Datasets:
             pon_dataset=Dataset.create_empty(),
             kan_dataset=Dataset.create_empty(),
         )
-    
+
     def overwrite_reward(self, reward):
         self.dahai_dataset.overwrite_reward(reward)
         self.reach_dataset.overwrite_reward(reward)
         self.chi_dataset.overwrite_reward(reward)
         self.pon_dataset.overwrite_reward(reward)
         self.kan_dataset.overwrite_reward(reward)
-

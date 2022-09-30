@@ -1,9 +1,11 @@
 from enum import Enum
 
+
 class DfsResultType(Enum):
-    Normal=0
-    Chitoitsu=1
-    Kokushimuso=2
+    Normal = 0
+    Chitoitsu = 1
+    Kokushimuso = 2
+
 
 class DfsResult:
     def __init__(self, result_type, combination, point_info, diff):
@@ -11,8 +13,8 @@ class DfsResult:
         self.combination = combination
         self.point_info = point_info
         self.diff = diff
-        self.dahaiable_ids = [i for (i,num) in enumerate(diff) if num < 0]
-        self.need_ids = [i for (i,num) in enumerate(diff) if num > 0]
+        self.dahaiable_ids = [i for (i, num) in enumerate(diff) if num < 0]
+        self.need_ids = [i for (i, num) in enumerate(diff) if num > 0]
         self.hora_path_length = sum([num for num in diff if num > 0])
 
     def is_dahaiable(self, dahai_id):
@@ -20,7 +22,7 @@ class DfsResult:
 
     def is_tsumoneed(self, tsumo_id):
         return tsumo_id in self.need_ids
-            
+
     def get_point(self):
         return self.point_info.points
 
@@ -29,9 +31,23 @@ class DfsResult:
 
     def valid(self):
         try:
-            return len([y for y in self.point_info.yakus if y[0] not in ["dora", "akadora", "uradora"]]) > 0
+            return (
+                len(
+                    [
+                        y
+                        for y in self.point_info.yakus
+                        if y[0] not in ["dora", "akadora", "uradora"]
+                    ]
+                )
+                > 0
+            )
         except:
-            import pdb; pdb.set_trace(); import time; time.sleep(1)
+            import pdb
+
+            pdb.set_trace()
+            import time
+
+            time.sleep(1)
             print(self.point_info)
             return False
 
@@ -40,4 +56,3 @@ class DfsResult:
 
     def __repr__(self):
         return f"{self.combination}, {self.point_info}, {self.diff}"
-

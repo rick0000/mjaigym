@@ -1,10 +1,9 @@
 import logging
-from logging.handlers import RotatingFileHandler
-from logging import StreamHandler
-
-
-from pathlib import Path
 import os
+from logging import StreamHandler
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
 
 def setup_logger(name, log_file, level=logging.INFO):
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -27,5 +26,7 @@ run_folder = "log"
 logger_main = setup_logger("logger_main", Path(run_folder) / "logs/logger_main.log")
 logger_main.disabled = False
 
-logger_server = setup_logger("logger_server", Path(run_folder) / "logs/logger_server.log")
+logger_server = setup_logger(
+    "logger_server", Path(run_folder) / "logs/logger_server.log"
+)
 logger_server.disabled = False

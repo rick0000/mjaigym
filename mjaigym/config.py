@@ -1,7 +1,8 @@
-import yaml
 import pprint
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from dataclasses import dataclass, asdict
+
+import yaml
 
 
 @dataclass
@@ -23,17 +24,16 @@ class YamlConfig:
 
 @dataclass(frozen=True)
 class GeneratorConfig(YamlConfig):
-    game_type:str = "tonpu"
-    use_dfs:bool = False
-    one_batch_game_num:int = 2
-    train_game_num:int = -1
-    dahai_ignore:bool = False
+    game_type: str = "tonpu"
+    use_dfs: bool = False
+    one_batch_game_num: int = 2
+    train_game_num: int = -1
+    dahai_ignore: bool = False
 
 
 @dataclass(frozen=True)
 class ModelConfig(YamlConfig):
-    resnet_repeat:int = 20
-    mid_channels:int = 128
-    learning_rate:float = 0.0001
-    batch_size:int = 128
-    
+    resnet_repeat: int = 20
+    mid_channels: int = 128
+    learning_rate: float = 0.0001
+    batch_size: int = 128

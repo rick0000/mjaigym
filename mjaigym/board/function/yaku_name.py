@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class YakuName(Enum):
     Tenho = "tenho"
     Chiho = "chiho"
@@ -13,7 +14,7 @@ class YakuName(Enum):
     Shosushi = "shosushi"
     Sukantsu = "sukantsu"
     Churenpoton = "churenpoton"
-    
+
     Dora = "dora"
     Uradora = "uradora"
     Akadora = "akadora"
@@ -46,6 +47,7 @@ class YakuName(Enum):
     Junchantaiyao = "junchantaiyao"
     Ryanpeko = "ryanpeko"
     Chiniso = "chiniso"
+
 
 YAKU_CHANNEL_CONVERT_LIST = [
     YakuName.Tenho,
@@ -103,5 +105,6 @@ YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "10")
 YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "11")
 YAKU_CHANNEL_CONVERT_LIST.append(YakuName.Dora.value + "12")
 
-YAKU_CHANNEL_MAP = dict(zip(YAKU_CHANNEL_CONVERT_LIST, range(len(YAKU_CHANNEL_CONVERT_LIST))))
-
+YAKU_CHANNEL_MAP = dict(
+    zip(YAKU_CHANNEL_CONVERT_LIST, range(len(YAKU_CHANNEL_CONVERT_LIST)))
+)
